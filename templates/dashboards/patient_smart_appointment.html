@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Smart Appointment Recommendation - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">AI Smart Appointment</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary-subtle text-primary border">Phase 11 AI Optimization</span>
+                    <span class="badge bg-success-subtle text-success border">Multi-Factor Slot Scoring</span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Smart Appointment Recommendation</h2>
+                <p class="text-secondary small mb-0">
+                    Find the optimal clinical consultation slots ranked by your preferred date, timing, doctor availability, and schedule flexibility.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Non-Diagnostic Disclaimer Banner -->
+    <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+        <div class="small text-secondary">
+            <strong class="text-dark">Operational Appointment Notice:</strong>
+            This recommendation engine optimizes appointment scheduling only based on physician hours and availability.
+            It does not diagnose medical conditions, triage symptoms, or prescribe treatments.
+        </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="row g-4">
+        <!-- Left: Smart Search Preferences Form -->
+        <div class="col-lg-5">
+            <div class="card card-care p-4 shadow-sm border">
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="bi bi-sliders text-primary me-2"></i>Consultation Preferences
+                </h5>
+
+                <form method="GET" action="{{ url_for('patient.smart_appointment') }}" id="smartForm">
+                    <!-- 1. Hospital Selection -->
+                    <div class="mb-3">
+                        <label for="hospitalSelect" class="form-label small fw-semibold">Hospital Facility <span class="text-danger">*</span></label>
+                        <select class="form-select" id="hospitalSelect" name="hospital_id" required>
+                            <option value="">-- Select Healthcare Facility --</option>
+                            {% for h in all_hospitals %}
+                                <option value="{{ h.id }}" {% if hospital_id == h.id %}selected{% endif %}>
+                                    {{ h.name }} ({{ h.city }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 2. Medical Specialization -->
+                    <div class="mb-3">
+                        <label for="specializationSelect" class="form-label small fw-semibold">Medical Specialty <span class="text-danger">*</span></label>
+                        <select class="form-select" id="specializationSelect" name="specialization" required>
+                            <option value="">-- Select Medical Department --</option>
+                            {% for spec in specialties %}
+                                <option value="{{ spec }}" {% if specialization and specialization.lower() == spec.lower() %}selected{% endif %}>
+                                    {{ spec }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 3. Optional Specific Doctor -->
+                    <div class="mb-3">
+                        <label for="doctorSelect" class="form-label small fw-semibold">Attending Physician <span class="text-muted fw-normal">(Optional)</span></label>
+                        <select class="form-select" id="doctorSelect" name="doctor_id">
+                            <option value="">-- Any Available Specialist --</option>
+                            {% for doc in all_doctors %}
+                                <option value="{{ doc.id }}" 
+                                        data-hospital="{{ doc.hospital_id }}" 
+                                        data-specialty="{{ doc.specialization }}"
+                                        {% if doctor_id == doc.id %}selected{% endif %}>
+                                    Dr. {{ doc.user.full_name if doc.user else "Physician" }} ({{ doc.specialization }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small">Filter by a specific doctor or leave blank to evaluate all matching physicians.</div>
+                    </div>
+
+                    <!-- 4. Preferred Date -->
+                    <div class="mb-3">
+                        <label for="preferredDate" class="form-label small fw-semibold">Preferred Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="preferredDate" name="preferred_date"
+                               min="{{ min_date }}" value="{{ preferred_date }}" required>
+                    </div>
+
+                    <!-- 5. Preferred Time Period -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold d-block">Preferred Time Period <span class="text-danger">*</span></label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="form-check p-2 border rounded-3 bg-light">
+                                    <input class="form-check-input ms-1" type="radio" name="preferred_time_period" id="timePeriodAny" value="any_time" 
+                                           {% if not preferred_time_period or preferred_time_period == 'any_time' %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold ms-1" for="timePeriodAny">
+                                        <i class="bi bi-clock me-1 text-primary"></i> Any Time
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check p-2 border rounded-3 bg-light">
+                                    <input class="form-check-input ms-1" type="radio" name="preferred_time_period" id="timePeriodMorning" value="morning"
+                                           {% if preferred_time_period == 'morning' %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold ms-1" for="timePeriodMorning">
+                                        <i class="bi bi-sunrise me-1 text-warning"></i> Morning
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check p-2 border rounded-3 bg-light">
+                                    <input class="form-check-input ms-1" type="radio" name="preferred_time_period" id="timePeriodAfternoon" value="afternoon"
+                                           {% if preferred_time_period == 'afternoon' %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold ms-1" for="timePeriodAfternoon">
+                                        <i class="bi bi-sun me-1 text-danger"></i> Afternoon
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check p-2 border rounded-3 bg-light">
+                                    <input class="form-check-input ms-1" type="radio" name="preferred_time_period" id="timePeriodEvening" value="evening"
+                                           {% if preferred_time_period == 'evening' %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold ms-1" for="timePeriodEvening">
+                                        <i class="bi bi-moon me-1 text-primary"></i> Evening
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Schedule Flexibility -->
+                    <div class="mb-4">
+                        <label for="flexibilitySelect" class="form-label small fw-semibold">Schedule Flexibility <span class="text-danger">*</span></label>
+                        <select class="form-select" id="flexibilitySelect" name="flexibility" required>
+                            <option value="exact" {% if not flexibility or flexibility == 'exact' %}selected{% endif %}>
+                                Exact (Target date only)
+                            </option>
+                            <option value="somewhat_flexible" {% if flexibility == 'somewhat_flexible' %}selected{% endif %}>
+                                Somewhat Flexible (Target date ± 1–2 days)
+                            </option>
+                            <option value="flexible" {% if flexibility == 'flexible' %}selected{% endif %}>
+                                Flexible (Target date up to +5 days)
+                            </option>
+                        </select>
+                        <div class="form-text small">Expanding flexibility increases the likelihood of finding low-congestion slots.</div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-care w-100 py-2 fw-semibold">
+                        <i class="bi bi-stars me-2"></i>Find Recommended Slots
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right: AI Recommendation Results -->
+        <div class="col-lg-7">
+            {% if has_searched %}
+                {% if result and result.status == 'success' and result.recommendations %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-trophy text-warning me-2"></i>Top Recommended Consultation Slots
+                        </h5>
+                        <span class="badge bg-primary-subtle text-primary border">
+                            {{ result.recommendations|length }} of {{ result.total_evaluated }} slots ranked
+                        </span>
+                    </div>
+
+                    <div class="vstack gap-3">
+                        {% for slot in result.recommendations %}
+                            <div class="card card-care p-4 border shadow-sm position-relative">
+                                <!-- Top Row: Rank & Match Score -->
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="badge bg-light text-dark border me-1">#{{ loop.index }} Choice</span>
+                                        <span class="badge bg-primary-subtle text-primary border">
+                                            <i class="bi bi-clock-history me-1"></i>{{ slot.time_period }}
+                                        </span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success-subtle text-success fs-6 px-3 py-1 border border-success-subtle">
+                                            <i class="bi bi-award-fill me-1"></i>Match Score: {{ slot.score }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Doctor & Hospital Details -->
+                                <div class="row align-items-center g-3 my-1">
+                                    <div class="col-md-7">
+                                        <h5 class="fw-bold text-dark mb-1">Dr. {{ slot.doctor_name }}</h5>
+                                        <div class="small text-primary fw-semibold mb-1">
+                                            <i class="bi bi-heart-pulse me-1"></i>{{ slot.specialization }}
+                                        </div>
+                                        <div class="small text-muted">
+                                            <i class="bi bi-hospital me-1"></i>{{ slot.hospital_name }} &bull; {{ slot.hospital_city }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5 text-md-end">
+                                        <div class="fs-5 fw-bold text-dark">{{ slot.time_slot }}</div>
+                                        <div class="small text-secondary fw-semibold">
+                                            <i class="bi bi-calendar3 me-1"></i>{{ slot.date_formatted }} ({{ slot.day_name }})
+                                        </div>
+                                        <div class="small text-success mt-1">
+                                            Fee: ${{ "%.2f"|format(slot.consultation_fee) }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Explainable Reasoning Box -->
+                                <div class="p-3 bg-light rounded-3 border my-3">
+                                    <div class="small text-dark">
+                                        <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+                                        <strong>Why this slot:</strong> {{ slot.explanation }}
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top d-flex flex-wrap gap-1">
+                                        {% for point in slot.score_breakdown %}
+                                            <span class="badge bg-white text-secondary border small fw-normal">{{ point }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- CTA: Book This Slot -->
+                                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                    <span class="small text-muted">
+                                        <i class="bi bi-shield-check text-success me-1"></i>Slot Verified Available
+                                    </span>
+                                    <a href="{{ url_for('patient.book_appointment', hospital_id=slot.hospital_id, doctor_id=slot.doctor_id, date=slot.date, time_slot=slot.time_slot) }}" 
+                                       class="btn btn-care px-4 fw-semibold">
+                                        Book This Slot <i class="bi bi-arrow-right ms-1"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Empty State -->
+                    <div class="card card-care p-5 text-center border shadow-sm">
+                        <div class="stat-icon mx-auto mb-3 bg-warning-subtle text-warning" style="width: 64px; height: 64px; font-size: 2rem;">
+                            <i class="bi bi-calendar-x"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-2">No Matching Slots Available</h4>
+                        <p class="text-secondary small mb-4 mx-auto" style="max-width: 480px;">
+                            {{ result.message if result else "No available consultation slots matched your exact criteria." }}
+                        </p>
+                        <div>
+                            <a href="{{ url_for('patient.smart_appointment') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-arrow-repeat me-1"></i> Reset Criteria &amp; Broaden Search
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- Initial Guidance State -->
+                <div class="card card-care p-5 text-center border shadow-sm">
+                    <div class="stat-icon mx-auto mb-3 bg-primary-subtle text-primary" style="width: 64px; height: 64px; font-size: 2rem;">
+                        <i class="bi bi-stars"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2">Smart Scheduling Engine</h4>
+                    <p class="text-secondary small mb-4 mx-auto" style="max-width: 480px;">
+                        Select your preferred hospital facility, medical department, and consultation timing on the left to generate optimal, verified appointment slots.
+                    </p>
+                    <div class="row g-3 text-start mx-auto" style="max-width: 520px;">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <strong class="small text-dark d-block mb-1"><i class="bi bi-clock text-primary me-1"></i> Preferred Time</strong>
+                                <span class="small text-muted">Prioritizes morning, afternoon, or evening windows.</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <strong class="small text-dark d-block mb-1"><i class="bi bi-calendar-range text-success me-1"></i> Flexibility</strong>
+                                <span class="small text-muted">Expands candidate days to find less congested slots.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Physician & Department Filtering Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hospitalSelect = document.getElementById('hospitalSelect');
+    const specializationSelect = document.getElementById('specializationSelect');
+    const doctorSelect = document.getElementById('doctorSelect');
+    const smartForm = document.getElementById('smartForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Filter doctors dropdown dynamically based on selected hospital and specialization
+    function filterDoctors() {
+        const selectedHosp = hospitalSelect.value;
+        const selectedSpec = specializationSelect.value.toLowerCase().trim();
+
+        Array.from(doctorSelect.options).forEach((opt, idx) => {
+            if (idx === 0) return; // Keep the default "Any Available Specialist" option
+
+            const docHosp = opt.getAttribute('data-hospital');
+            const docSpec = (opt.getAttribute('data-specialty') || '').toLowerCase().trim();
+
+            let matchHosp = (!selectedHosp || docHosp === selectedHosp);
+            let matchSpec = (!selectedSpec || docSpec.includes(selectedSpec) || selectedSpec.includes(docSpec));
+
+            if (matchHosp && matchSpec) {
+                opt.hidden = false;
+                opt.disabled = false;
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+                if (opt.selected) {
+                    doctorSelect.selectedIndex = 0;
+                }
+            }
+        });
+    }
+
+    hospitalSelect.addEventListener('change', filterDoctors);
+    specializationSelect.addEventListener('change', filterDoctors);
+
+    // Initial filter run
+    filterDoctors();
+
+    // Form submission spinner
+    smartForm.addEventListener('submit', function() {
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyzing Schedules...';
+        submitBtn.disabled = true;
+    });
+});
+</script>
+{% endblock %}

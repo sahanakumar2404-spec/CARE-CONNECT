@@ -1,0 +1,106 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "email": "admin@careconnect.org",
+      "role": "hospital",
+      "full_name": "Metro Health Authority",
+      "phone": "+1 (212) 555-0100"
+    },
+    {
+      "id": 2,
+      "username": "drsmith",
+      "email": "dr.smith@careconnect.org",
+      "role": "doctor",
+      "full_name": "Dr. Sarah Smith",
+      "phone": "+1 (212) 555-0141"
+    },
+    {
+      "id": 3,
+      "username": "drjohnson",
+      "email": "dr.johnson@careconnect.org",
+      "role": "doctor",
+      "full_name": "Dr. Marcus Johnson",
+      "phone": "+1 (212) 555-0142"
+    },
+    {
+      "id": 4,
+      "username": "drpatel",
+      "email": "dr.patel@careconnect.org",
+      "role": "doctor",
+      "full_name": "Dr. Anita Patel",
+      "phone": "+1 (212) 555-0143"
+    },
+    {
+      "id": 5,
+      "username": "patient",
+      "email": "patient@careconnect.org",
+      "role": "patient",
+      "full_name": "Alex Rivera",
+      "phone": "+1 (212) 555-0812"
+    }
+  ],
+  "hospitals": [
+    {
+      "id": 1,
+      "name": "Metro General Hospital & Research Center",
+      "registration_number": "HOSP-NYC-2026-001",
+      "hospital_type": "Multispecialty Teaching & Research Hospital",
+      "address": "450 Lexington Avenue",
+      "city": "New York",
+      "total_beds": 320,
+      "available_beds": 78
+    }
+  ],
+  "doctors": [
+    {
+      "id": 1,
+      "name": "Dr. Sarah Smith",
+      "specialization": "Cardiology",
+      "qualification": "MD, FACC - Harvard Medical School",
+      "consultation_fee": 120.0,
+      "available_days": "Monday, Wednesday, Friday",
+      "available_time": "09:00 AM - 03:00 PM"
+    },
+    {
+      "id": 2,
+      "name": "Dr. Marcus Johnson",
+      "specialization": "Neurology",
+      "qualification": "MD, PhD - Johns Hopkins University",
+      "consultation_fee": 140.0,
+      "available_days": "Tuesday, Thursday, Saturday",
+      "available_time": "10:00 AM - 04:00 PM"
+    },
+    {
+      "id": 3,
+      "name": "Dr. Anita Patel",
+      "specialization": "General Medicine",
+      "qualification": "MD - Columbia University",
+      "consultation_fee": 75.0,
+      "available_days": "Monday - Friday",
+      "available_time": "08:30 AM - 02:30 PM"
+    }
+  ],
+  "patients": [
+    {
+      "id": 1,
+      "name": "Alex Rivera",
+      "gender": "Male",
+      "blood_group": "O+",
+      "emergency_contact": "+1 (212) 555-0999"
+    }
+  ],
+  "appointments": [
+    {
+      "id": 1,
+      "appointment_number": "CC-2026-000001",
+      "verification_token": "CC-VERIFY-2026-000001",
+      "date": "2026-09-13",
+      "time_slot": "10:30 AM - 11:00 AM",
+      "status": "confirmed",
+      "doctor": "Dr. Sarah Smith",
+      "hospital": "Metro General Hospital & Research Center"
+    }
+  ]
+}

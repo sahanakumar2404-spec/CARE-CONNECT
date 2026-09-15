@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Appointment Confirmed - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Confirmation Card -->
+            <div class="card card-care shadow border-0 overflow-hidden">
+                <!-- Header Banner -->
+                <div class="p-4 text-center bg-success text-white">
+                    <div class="mb-2">
+                        <i class="bi bi-check-circle-fill" style="font-size: 3.5rem;"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Appointment Confirmed!</h3>
+                    <p class="mb-0 small text-white-50">Your consultation has been successfully reserved and locked into the clinical queue.</p>
+                </div>
+
+                <div class="p-4">
+                    <!-- Tracking Badge -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center p-3 mb-4 bg-light rounded-3 border">
+                        <div>
+                            <span class="text-muted small d-block">Official Appointment Number:</span>
+                            <h4 class="fw-bold text-primary mb-0 font-monospace">
+                                {{ appointment.appointment_number or appointment.appointment_uid[:8] }}
+                            </h4>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success px-3 py-2 text-capitalize fs-6">
+                                <i class="bi bi-check-all me-1"></i>{{ appointment.status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Consultation Details Table -->
+                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Consultation Summary</h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered align-middle">
+                            <tbody>
+                                <tr>
+                                    <th class="bg-light text-secondary w-35" style="width: 35%;">Patient Full Name</th>
+                                    <td class="fw-semibold text-dark">{{ patient.user.full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light text-secondary">Attending Physician</th>
+                                    <td>
+                                        <strong class="text-primary">Dr. {{ doctor.user.full_name if doctor and doctor.user else "Physician" }}</strong>
+                                        <span class="badge bg-primary-subtle text-primary ms-1">{{ doctor.specialization if doctor else "" }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light text-secondary">Healthcare Facility</th>
+                                    <td>
+                                        <strong>{{ hospital.name if hospital else "Care Connect Hospital" }}</strong>
+                                        <div class="small text-muted">{{ hospital.address }}, {{ hospital.city }}</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light text-secondary">Consultation Date</th>
+                                    <td class="fw-bold text-dark">
+                                        <i class="bi bi-calendar-event me-1 text-primary"></i>
+                                        {{ appointment.appointment_date.strftime('%A, %B %d, %Y') if appointment.appointment_date else "N/A" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light text-secondary">Scheduled Time Slot</th>
+                                    <td class="fw-bold text-success">
+                                        <i class="bi bi-clock me-1 text-success"></i>
+                                        {{ appointment.time_slot }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light text-secondary">Standard Consultation Fee</th>
+                                    <td class="fw-bold text-dark">
+                                        ${{ "%.2f"|format(doctor.consultation_fee) if doctor else "0.00" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light text-secondary">Reported Symptoms / Reason</th>
+                                    <td class="text-secondary">{{ appointment.symptoms or "General Clinical Evaluation" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- QR Code and Digital Verification Pass Section -->
+                    <div class="row align-items-center g-3 p-3 bg-light rounded-3 border mb-4">
+                        <div class="col-auto text-center">
+                            {% if appointment.qr_code_file %}
+                                <img src="{{ url_for('main.serve_qr', filename=appointment.qr_code_file) }}" alt="Appointment Verification QR" class="img-thumbnail shadow-sm bg-white" style="width: 120px; height: 120px;">
+                            {% else %}
+                                <div class="bg-white border rounded d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                                    <i class="bi bi-qr-code text-muted fs-1"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <h6 class="fw-bold text-dark mb-1">
+                                <i class="bi bi-shield-check text-success me-1"></i> Digital Verification Pass
+                            </h6>
+                            <p class="text-muted small mb-2">
+                                Present this digital pass or downloaded PDF at the hospital registration desk. Hospital staff will scan your QR code to instantly verify your scheduled slot.
+                            </p>
+                            {% if appointment.verification_token %}
+                                <a href="{{ url_for('main.verify_appointment', token=appointment.verification_token) }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Test Public Verification
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Instructions & Next Steps -->
+                    <div class="p-3 bg-light rounded-3 text-secondary small border mb-4">
+                        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-bell-fill text-warning me-1"></i> Patient Arrival Guidelines</h6>
+                        <ul class="mb-0 ps-3">
+                            <li>Please arrive 15 minutes prior to your scheduled slot at {{ hospital.name if hospital else "the clinic" }}.</li>
+                            <li>Carry any relevant previous medical prescriptions, lab reports, and photo ID.</li>
+                            <li>The attending physician's schedule is updated in real-time. If you need to reschedule, contact the hospital helpline at <strong>{{ hospital.contact_phone or '(212) 555-0199' }}</strong>.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 border-top">
+                        <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="button" onclick="window.print()" class="btn btn-outline-dark">
+                                <i class="bi bi-printer me-1"></i> Print
+                            </button>
+                            <a href="{{ url_for('patient.download_appointment_pdf', appointment_id=appointment.id) }}" class="btn btn-primary" id="download-pdf-btn">
+                                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+                            </a>
+                            <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-care">
+                                <i class="bi bi-calendar-plus me-1"></i> Book Another
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

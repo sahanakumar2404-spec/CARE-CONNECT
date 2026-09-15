@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Dashboard - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Patient Profile Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background: #f3e8ff; color: #7c3aed; width: 64px; height: 64px; font-size: 2rem;">
+                    <i class="bi bi-person-heart"></i>
+                </div>
+                <div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <span class="badge badge-patient px-3 py-1">Patient Portal</span>
+                        <span class="badge bg-danger-subtle text-danger border">Blood Group: {{ patient.blood_group if patient else "O+" }}</span>
+                        <span class="badge bg-light text-dark border">DOB: {{ patient.date_of_birth if patient and patient.date_of_birth else "Not Specified" }}</span>
+                    </div>
+                    <h2 class="fw-bold mb-1 text-dark">{{ patient.user.full_name if patient and patient.user else "Patient" }}</h2>
+                    <p class="text-secondary small mb-0">
+                        <i class="bi bi-envelope me-1 text-primary"></i> {{ patient.user.email if patient and patient.user else "" }} &bull; 
+                        <i class="bi bi-telephone me-1 text-success"></i> {{ patient.user.phone if patient and patient.user else "N/A" }} &bull;
+                        <i class="bi bi-geo-alt me-1 text-danger"></i> {{ patient.city if patient else "New York" }} ({{ patient.address or "Address on file" }})
+                    </p>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <a href="{{ url_for('patient.profile') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i> My Profile
+                </a>
+                <a href="{{ url_for('patient.hospitals') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-hospital me-1"></i> Hospitals &amp; Doctors
+                </a>
+                <a href="{{ url_for('patient.smart_appointment') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-stars me-1"></i> Smart Appointment
+                </a>
+                <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-care btn-sm">
+                    <i class="bi bi-calendar-plus me-1"></i> Book Consultation
+                </a>
+            </div>
+        </div>
+        {% if patient and patient.emergency_contact %}
+        <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="badge bg-danger-subtle text-danger p-2 border border-danger-subtle">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> Emergency Contact: {{ patient.emergency_contact }}
+            </span>
+            <span class="text-muted small">
+                Registered on Care Connect Network
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Navigation Pills -->
+    <div class="mb-4">
+        <ul class="nav nav-pills gap-2 bg-white p-2 rounded-3 border shadow-sm flex-wrap small">
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('patient.dashboard') }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('patient.profile') }}"><i class="bi bi-person-badge me-1"></i> My Profile</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('patient.hospitals') }}"><i class="bi bi-hospital me-1"></i> Browse Hospitals ({{ hospital_count }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('patient.ai_specialist') }}"><i class="bi bi-robot me-1"></i> AI Specialist Recommender</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('patient.smart_appointment') }}"><i class="bi bi-stars me-1"></i> AI Smart Appointment</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#triage"><i class="bi bi-heart-pulse me-1"></i> Quick Triage</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#appointments"><i class="bi bi-calendar-check me-1"></i> My Consultations ({{ appointments|length }})</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 4 Key Metric Summary Cards -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Registered Hospitals -->
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card h-100 p-3">
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="bi bi-hospital"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0">{{ hospital_count }}</h3>
+                    <span class="small text-muted">Registered Hospitals</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Available Specialists -->
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card h-100 p-3">
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-heart-pulse"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0">{{ specialties|length }}</h3>
+                    <span class="small text-muted">Medical Specialties</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Available Doctors -->
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card h-100 p-3">
+                <div class="stat-icon bg-success-subtle text-success">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0">{{ available_doctors_count }}</h3>
+                    <span class="small text-muted">On-Duty Physicians</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Active Appointments -->
+        <div class="col-lg-3 col-sm-6">
+            <div class="stat-card h-100 p-3">
+                <div class="stat-icon bg-warning-subtle text-warning">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0">{{ upcoming_appointments|length }}</h3>
+                    <span class="small text-muted">Upcoming Bookings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Specialist Discovery & Consultations Row -->
+    <div class="row g-4 mb-4" id="triage">
+        <!-- AI Symptom Specialist Recommender Widget -->
+        <div class="col-lg-6">
+            <div class="card card-care p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-robot text-primary me-2"></i>AI Specialist Discovery
+                    </h5>
+                    <span class="badge bg-primary-subtle text-primary">NLP Triage Engine</span>
+                </div>
+                <p class="text-secondary small mb-3">
+                    Not sure which doctor to consult? Enter your symptoms below and our AI engine will identify the appropriate medical specialty.
+                </p>
+
+                <div class="mb-3">
+                    <label for="symptomsInput" class="form-label small fw-semibold">Describe your symptoms or physical complaints:</label>
+                    <textarea class="form-control" id="symptomsInput" rows="3" placeholder="e.g., I have been feeling frequent palpitations, dizziness upon light exertion, and chest pressure..."></textarea>
+                </div>
+
+                <button type="button" id="analyzeSymptomsBtn" class="btn btn-care w-100 mb-2">
+                    <i class="bi bi-magic me-2"></i>Analyze with AI
+                </button>
+
+                <div class="text-center">
+                    <a href="{{ url_for('patient.ai_specialist') }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-robot me-1"></i> Open Full AI Specialist Recommender
+                    </a>
+                </div>
+
+                <!-- AI Results Container (dynamically updated by main.js) -->
+                <div id="aiResultsContainer"></div>
+            </div>
+        </div>
+
+        <!-- My Confirmed Appointments & Digital QR Verification -->
+        <div class="col-lg-6" id="appointments">
+            <div class="card card-care p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-qr-code-scan text-success me-2"></i>Digital Verified Appointments
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success">{{ appointments|length }} Total</span>
+                        <a href="{{ url_for('patient.appointments') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-calendar-check me-1"></i> View All
+                        </a>
+                    </div>
+                </div>
+
+                {% if appointments %}
+                    {% for appt in appointments %}
+                        <div class="border rounded-3 p-3 mb-3 bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-sm-8">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <h6 class="fw-bold mb-0 text-primary">{{ appt.doctor.user.full_name if appt.doctor and appt.doctor.user else "Doctor" }}</h6>
+                                        <span class="badge bg-secondary-subtle text-secondary small">{{ appt.doctor.specialization if appt.doctor else "" }}</span>
+                                    </div>
+                                    <p class="small text-muted mb-1">
+                                        <i class="bi bi-hospital me-1"></i>{{ appt.hospital.name if appt.hospital else "Care Connect Center" }}
+                                    </p>
+                                    <p class="small text-dark mb-1">
+                                        <i class="bi bi-calendar-event me-1 text-primary"></i> <strong>{{ appt.appointment_date }}</strong> at <strong>{{ appt.time_slot }}</strong>
+                                    </p>
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="badge bg-success-subtle text-success text-capitalize"><i class="bi bi-check2-circle me-1"></i>{{ appt.status }}</span>
+                                        {% if appt.appointment_number %}
+                                            <span class="badge bg-primary-subtle text-primary font-monospace">{{ appt.appointment_number }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        <a href="{{ url_for('patient.download_appointment_pdf', appointment_id=appt.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+                                        </a>
+                                        <a href="{{ url_for('patient.booking_confirmation', appointment_id=appt.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-receipt me-1"></i> Pass
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 text-center mt-3 mt-sm-0">
+                                    {% if appt.qr_code_file %}
+                                        <div class="qr-preview-box">
+                                            <img src="{{ url_for('main.serve_qr', filename=appt.qr_code_file) }}" alt="Appointment QR Code" class="img-fluid" style="width: 85px; height: 85px;">
+                                            <div class="small text-muted font-monospace mt-1" style="font-size: 0.65rem;">UID: {{ appt.appointment_uid[:8] }}</div>
+                                            {% if appt.verification_token %}
+                                                <a href="{{ url_for('main.verify_appointment', token=appt.verification_token) }}" target="_blank" class="small text-decoration-none d-block mt-1" style="font-size: 0.72rem;">
+                                                    <i class="bi bi-patch-check-fill text-success me-1"></i>Verify
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-calendar-x fs-1 text-secondary mb-2 d-block"></i>
+                        No scheduled appointments yet. Browse specialists below to book.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Medical Specialists Catalog -->
+    <div class="card card-care p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="bi bi-stethoscope text-primary me-2"></i>Available Medical Specialists</h5>
+                <p class="text-secondary small mb-0">Browse practicing doctors ready for clinical consultations</p>
+            </div>
+            <a href="{{ url_for('patient.hospitals') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-search me-1"></i> Search by Hospital
+            </a>
+        </div>
+
+        <div class="row g-3">
+            {% for doc in available_doctors %}
+                <div class="col-md-4">
+                    <div class="p-3 border rounded-3 h-100 bg-white shadow-sm d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold mb-0 text-dark">Dr. {{ doc.user.full_name if doc.user else "Doctor" }}</h6>
+                                <span class="badge bg-success-subtle text-success">Available</span>
+                            </div>
+                            <p class="small text-primary fw-semibold mb-1">{{ doc.specialization }} &bull; <span class="text-muted">{{ doc.qualification }}</span></p>
+                            <p class="small text-muted mb-2">
+                                <i class="bi bi-building me-1 text-info"></i>{{ doc.hospital.name if doc.hospital else "Care Connect Partner Facility" }}
+                            </p>
+                        </div>
+                        <div class="pt-2 border-top">
+                            <div class="d-flex justify-content-between align-items-center small mb-2">
+                                <span class="text-muted">{{ doc.available_time }}</span>
+                                <span class="fw-bold text-success">${{ "%.2f"|format(doc.consultation_fee) }}</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('patient.doctor_detail', doctor_id=doc.id) }}" class="btn btn-sm btn-outline-primary w-50">
+                                    Profile
+                                </a>
+                                <a href="{{ url_for('patient.book_appointment', doctor_id=doc.id) }}" class="btn btn-sm btn-care w-50">
+                                    Book
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12 text-center text-muted py-4">No specialists available currently.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

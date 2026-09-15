@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Onboarding & Registration - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Role Switcher Nav -->
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <a href="{{ url_for('auth.register_patient') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                    <i class="bi bi-person me-1"></i> Patient Register
+                </a>
+                <a href="{{ url_for('auth.register_doctor') }}" class="btn btn-success btn-sm px-3 rounded-pill text-white fw-semibold">
+                    <i class="bi bi-stethoscope me-1"></i> Doctor Join
+                </a>
+                <a href="{{ url_for('auth.register_hospital') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                    <i class="bi bi-hospital me-1"></i> Hospital Register
+                </a>
+            </div>
+
+            <div class="card card-care shadow-lg p-4 p-md-5 border-0">
+                <div class="text-center mb-4">
+                    <div class="brand-badge mb-3 mx-auto" style="width: 52px; height: 52px; font-size: 1.6rem; background: linear-gradient(135deg, #0f766e 0%, #059669 100%);">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Doctor Onboarding</h3>
+                    <p class="text-muted small">Create your clinical profile and connect with patients and registered hospitals</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.register_doctor') }}">
+                    <!-- Clinical Profile -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-mortarboard me-1"></i> Professional & Clinical Profile
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label fw-semibold small">Full Name (with Dr. prefix) *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ form_data.full_name if form_data else '' }}" placeholder="e.g. Dr. Emily Watson" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="specialization" class="form-label fw-semibold small">Medical Specialization *</label>
+                            <input type="text" class="form-control" id="specialization" name="specialization" value="{{ form_data.specialization if form_data else '' }}" placeholder="e.g. Cardiology, Neurology, General Medicine" required list="specialtySuggestions">
+                            <datalist id="specialtySuggestions">
+                                <option value="Cardiology">
+                                <option value="Neurology">
+                                <option value="General Medicine">
+                                <option value="Pediatrics">
+                                <option value="Orthopedics">
+                                <option value="Dermatology">
+                                <option value="Oncology">
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="qualification" class="form-label fw-semibold small">Medical Qualifications *</label>
+                            <input type="text" class="form-control" id="qualification" name="qualification" value="{{ form_data.qualification if form_data else '' }}" placeholder="e.g. MD, FACC - Harvard Medical School" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="hospital_id" class="form-label fw-semibold small">Associated Hospital Facility *</label>
+                            <select class="form-select" id="hospital_id" name="hospital_id" required>
+                                <option value="" disabled {% if not form_data or not form_data.hospital_id %}selected{% endif %}>Select Registered Hospital...</option>
+                                {% for hosp in hospitals %}
+                                    <option value="{{ hosp.id }}" {% if form_data and form_data.hospital_id|string == hosp.id|string %}selected{% endif %}>
+                                        {{ hosp.name }} ({{ hosp.city }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="experience_years" class="form-label fw-semibold small">Years of Clinical Experience *</label>
+                            <input type="number" class="form-control" id="experience_years" name="experience_years" min="0" max="60" value="{{ form_data.experience_years if form_data else '5' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="consultation_fee" class="form-label fw-semibold small">Consultation Fee ($ USD)</label>
+                            <input type="number" class="form-control" id="consultation_fee" name="consultation_fee" min="0" step="5" value="{{ form_data.consultation_fee if form_data else '80' }}">
+                        </div>
+                    </div>
+
+                    <!-- Contact & Access Credentials -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-shield-lock me-1"></i> Contact & Security
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label fw-semibold small">Doctor Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ form_data.email if form_data else '' }}" placeholder="dr.watson@hospital.org" required>
+                            <div class="form-text">Used to sign in to your Doctor Dashboard.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label fw-semibold small">Mobile / Clinic Phone *</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ form_data.phone if form_data else '' }}" placeholder="+1 (212) 555-0140" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label fw-semibold small">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 characters" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label fw-semibold small">Confirm Password *</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-care w-100 py-2 mb-3" style="background: linear-gradient(135deg, #0f766e 0%, #059669 100%);">
+                        <i class="bi bi-person-check-fill me-2"></i> Register Doctor Account & Access Portal
+                    </button>
+                </form>
+
+                <div class="text-center mt-2 pt-3 border-top">
+                    <p class="small text-muted mb-0">
+                        Already have a practicing physician account? <a href="{{ url_for('auth.login', role='doctor') }}" class="fw-semibold text-primary">Doctor Sign In</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

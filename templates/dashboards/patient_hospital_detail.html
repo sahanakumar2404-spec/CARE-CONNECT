@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ hospital.name }} - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.hospitals') }}" class="text-decoration-none">Hospitals</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ hospital.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Hospital Overview Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div class="d-flex align-items-start gap-3">
+                <div class="stat-icon bg-info-subtle text-info flex-shrink-0" style="width: 64px; height: 64px; font-size: 2rem;">
+                    <i class="bi bi-hospital"></i>
+                </div>
+                <div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                        <span class="badge bg-primary-subtle text-primary border">{{ hospital.hospital_type or 'General Hospital' }}</span>
+                        <span class="badge bg-light text-muted border">ID: {{ hospital.registration_number }}</span>
+                        {% if hospital.emergency_available %}
+                            <span class="badge bg-danger-subtle text-danger border">
+                                <i class="bi bi-lightning-charge-fill me-1"></i>24/7 Emergency Services
+                            </span>
+                        {% endif %}
+                        {% if hospital.user and hospital.user.is_active %}
+                            <span class="badge bg-success-subtle text-success border">
+                                <i class="bi bi-check-circle-fill me-1"></i>Verified Care Facility
+                            </span>
+                        {% endif %}
+                    </div>
+                    <h2 class="fw-bold mb-1 text-dark">{{ hospital.name }}</h2>
+                    <p class="text-secondary small mb-0">
+                        <i class="bi bi-geo-alt text-danger me-1"></i>{{ hospital.address }}, <strong>{{ hospital.city }}</strong> &bull;
+                        <i class="bi bi-telephone text-success ms-2 me-1"></i>{{ hospital.contact_phone or hospital.contact_email or 'On File' }}
+                        {% if hospital.contact_email %}
+                            &bull; <i class="bi bi-envelope text-primary ms-2 me-1"></i>{{ hospital.contact_email }}
+                        {% elif hospital.user and hospital.user.email %}
+                            &bull; <i class="bi bi-envelope text-primary ms-2 me-1"></i>{{ hospital.user.email }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('patient.hospitals') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> All Hospitals
+                </a>
+            </div>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- Capacity Metrics -->
+        <div class="row g-3 text-center">
+            <div class="col-md-3 col-6">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Total Bed Capacity</div>
+                    <h4 class="fw-bold mb-0 text-dark">{{ hospital.total_beds }}</h4>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Available Beds</div>
+                    <h4 class="fw-bold mb-0 text-success">{{ hospital.available_beds }}</h4>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Operational Status</div>
+                    <h4 class="fw-bold mb-0 text-primary fs-6">{{ hospital.operational_status or 'Active' }}</h4>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Practicing Specialists</div>
+                    <h4 class="fw-bold mb-0 text-primary">{{ hospital.doctors.count() }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Specialization Filter Pills -->
+    <div class="card card-care p-3 mb-4 shadow-sm">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="small fw-bold text-dark"><i class="bi bi-funnel text-primary me-1"></i>Filter by Specialization:</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('patient.hospital_detail', hospital_id=hospital.id) }}" 
+                   class="btn btn-sm {% if not selected_specialty %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                    All Specialties ({{ hospital.doctors.count() }})
+                </a>
+                {% for spec in specialties %}
+                    <a href="{{ url_for('patient.hospital_detail', hospital_id=hospital.id, specialty=spec) }}" 
+                       class="btn btn-sm {% if selected_specialty == spec %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                        {{ spec }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor Roster -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-person-badge text-primary me-2"></i>Affiliated Physicians &amp; Specialists
+                </h4>
+                <p class="text-secondary small mb-0">
+                    Showing {{ doctors|length }} practitioner{% if doctors|length != 1 %}s{% endif %}
+                    {% if selected_specialty %} specializing in <strong>{{ selected_specialty }}</strong>{% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if doctors %}
+            <div class="row g-4">
+                {% for doc in doctors %}
+                    <div class="col-lg-6">
+                        <div class="card card-care h-100 p-4 shadow-sm d-flex flex-column justify-content-between border">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="stat-icon bg-primary-subtle text-primary flex-shrink-0" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                                            <i class="bi bi-person-heart"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="fw-bold mb-0 text-dark">Dr. {{ doc.user.full_name if doc.user else "Physician" }}</h5>
+                                            <span class="badge bg-primary-subtle text-primary border small">{{ doc.specialization }}</span>
+                                            {% if doc.is_available %}
+                                                <span class="badge bg-success-subtle text-success border small">Available</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary border small">Off-Duty</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fw-bold text-success fs-5">${{ "%.2f"|format(doc.consultation_fee) }}</span>
+                                        <span class="d-block small text-muted">Consultation</span>
+                                    </div>
+                                </div>
+
+                                <div class="text-secondary small my-3">
+                                    <p class="mb-1"><i class="bi bi-award text-warning me-2"></i><strong>Qualification:</strong> {{ doc.qualification }}</p>
+                                    <p class="mb-1"><i class="bi bi-briefcase text-info me-2"></i><strong>Experience:</strong> {{ doc.experience_years }} Years Clinical Practice</p>
+                                    <p class="mb-1"><i class="bi bi-clock text-primary me-2"></i><strong>Timings:</strong> {{ doc.available_time }}</p>
+                                    <p class="mb-0"><i class="bi bi-calendar3 text-secondary me-2"></i><strong>Days:</strong> {{ doc.available_days or 'Monday - Friday' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 border-top d-flex gap-2 justify-content-end">
+                                <a href="{{ url_for('patient.doctor_detail', doctor_id=doc.id) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-person-lines-fill me-1"></i> Full Profile &amp; Bio
+                                </a>
+                                <a href="{{ url_for('patient.book_appointment', doctor_id=doc.id) }}" class="btn btn-care btn-sm">
+                                    <i class="bi bi-calendar-plus me-1"></i> Book Appointment
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card card-care p-5 text-center shadow-sm">
+                <div class="mb-3">
+                    <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="fw-bold text-dark">No Specialists Found</h5>
+                <p class="text-muted mb-3">No affiliated doctors matched the selected specialization filter.</p>
+                <div>
+                    <a href="{{ url_for('patient.hospital_detail', hospital_id=hospital.id) }}" class="btn btn-outline-primary btn-sm">
+                        Show All Specialists at this Hospital
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Phase 6 Booking Placeholder Modal -->
+<div class="modal fade" id="bookingPhase6Modal" tabindex="-1" aria-labelledby="bookingPhase6ModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="bookingPhase6ModalLabel"><i class="bi bi-calendar-check me-2"></i>Care Connect Appointment Scheduling</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="bi bi-cone-striped text-warning" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Slot Booking Engine Launching in Phase 6</h5>
+                <p class="text-secondary small mb-3">
+                    Real-time slot locking, double-booking prevention, calendar selection, and digital verification passes with QR codes will be unlocked in <strong>Phase 6</strong>.
+                </p>
+                <div class="p-3 bg-light rounded-3 text-start small border">
+                    <div class="fw-semibold text-primary mb-1"><i class="bi bi-info-circle me-1"></i>Phase 5 Milestone Reached:</div>
+                    <ul class="mb-0 ps-3 text-muted">
+                        <li>Hospital discovery &amp; facility inspection verified</li>
+                        <li>Specialist rosters and credentials filterable</li>
+                        <li>Direct coordination ready for Phase 6 scheduling</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

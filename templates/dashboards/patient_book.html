@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+
+{% block title %}Book Consultation - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            {% if selected_hospital %}
+                <li class="breadcrumb-item"><a href="{{ url_for('patient.hospital_detail', hospital_id=selected_hospital.id) }}" class="text-decoration-none">{{ selected_hospital.name }}</a></li>
+            {% endif %}
+            {% if selected_doctor %}
+                <li class="breadcrumb-item"><a href="{{ url_for('patient.doctor_detail', doctor_id=selected_doctor.id) }}" class="text-decoration-none">Dr. {{ selected_doctor.user.full_name if selected_doctor.user else "Physician" }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">Book Consultation</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary-subtle text-primary border">Phase 6 Scheduling</span>
+                    <span class="badge bg-success-subtle text-success border">Real-Time Slot Engine</span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Schedule an Appointment</h2>
+                <p class="text-secondary small mb-0">
+                    Select your preferred physician, available consultation date, and confirmed 30-minute clinical time slot.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Cancel & Return
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8-Step Visual Progression Stepper -->
+    <div class="card card-care p-3 mb-4 border-0 shadow-sm">
+        <div class="booking-stepper mb-0">
+            <div class="stepper-step {% if selected_hospital %}completed{% else %}active{% endif %}">
+                <div class="step-indicator">1</div>
+                <div class="step-title">Hospital</div>
+            </div>
+            <div class="stepper-step {% if selected_doctor %}completed{% elif selected_hospital %}active{% endif %}">
+                <div class="step-indicator">2</div>
+                <div class="step-title">Specialization</div>
+            </div>
+            <div class="stepper-step {% if selected_doctor %}completed{% elif selected_hospital %}active{% endif %}">
+                <div class="step-indicator">3</div>
+                <div class="step-title">Doctor</div>
+            </div>
+            <div class="stepper-step {% if target_date and selected_doctor %}completed{% elif selected_doctor %}active{% endif %}">
+                <div class="step-indicator">4</div>
+                <div class="step-title">Date</div>
+            </div>
+            <div class="stepper-step {% if prefilled_time_slot %}completed{% elif selected_doctor %}active{% endif %}">
+                <div class="step-indicator">5</div>
+                <div class="step-title">Available Slot</div>
+            </div>
+            <div class="stepper-step active">
+                <div class="step-indicator">6</div>
+                <div class="step-title">Patient Details</div>
+            </div>
+            <div class="stepper-step">
+                <div class="step-indicator">7</div>
+                <div class="step-title">Review</div>
+            </div>
+            <div class="stepper-step">
+                <div class="step-indicator">8</div>
+                <div class="step-title">Confirm</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Form Container -->
+    <form method="POST" action="{{ url_for('patient.book_appointment') }}" id="bookingForm" class="needs-validation">
+        <div class="row g-4">
+            <!-- Left Column: Step 1, 2, 3 Selection Controls -->
+            <div class="col-lg-8">
+                <!-- Step 1: Hospital & Doctor Selection -->
+                <div class="card card-care p-4 mb-4 shadow-sm border">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <span class="badge bg-primary text-white rounded-circle me-2 px-2 py-1">1</span>
+                        Select Healthcare Facility &amp; Specialist
+                    </h5>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="hospitalSelect" class="form-label small fw-semibold">Hospital Facility <span class="text-danger">*</span></label>
+                            <select class="form-select" id="hospitalSelect" name="hospital_id" required>
+                                <option value="">-- Choose Hospital --</option>
+                                {% for h in all_hospitals %}
+                                    <option value="{{ h.id }}" {% if selected_hospital and selected_hospital.id == h.id %}selected{% endif %}>
+                                        {{ h.name }} ({{ h.city }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="doctorSelect" class="form-label small fw-semibold">Attending Physician <span class="text-danger">*</span></label>
+                            <select class="form-select" id="doctorSelect" name="doctor_id" required>
+                                <option value="">-- Choose Doctor --</option>
+                                {% for d in all_doctors %}
+                                    <option value="{{ d.id }}" 
+                                            data-hospital="{{ d.hospital_id }}" 
+                                            data-fee="{{ d.consultation_fee }}"
+                                            data-specialty="{{ d.specialization }}"
+                                            data-days="{{ d.available_days }}"
+                                            data-time="{{ d.available_time }}"
+                                            {% if selected_doctor and selected_doctor.id == d.id %}selected{% endif %}>
+                                        Dr. {{ d.user.full_name if d.user else "Physician" }} ({{ d.specialization }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    {% if selected_doctor %}
+                        <div class="mt-3 p-3 bg-light rounded-3 border d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <span class="fw-bold text-dark">Dr. {{ selected_doctor.user.full_name }}</span>
+                                <span class="badge bg-primary-subtle text-primary ms-1">{{ selected_doctor.specialization }}</span>
+                                <div class="small text-muted mt-1">
+                                    <i class="bi bi-calendar3 me-1"></i>Schedule: <strong>{{ selected_doctor.available_days }}</strong> &bull; 
+                                    <i class="bi bi-clock me-1"></i>Hours: <strong>{{ selected_doctor.available_time }}</strong>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success-subtle text-success fs-6">${{ "%.2f"|format(selected_doctor.consultation_fee) }}</span>
+                                <span class="d-block small text-muted">Consultation Fee</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Step 2: Date Selection -->
+                <div class="card card-care p-4 mb-4 shadow-sm border">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <span class="badge bg-primary text-white rounded-circle me-2 px-2 py-1">2</span>
+                        Choose Consultation Date
+                    </h5>
+
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-6">
+                            <label for="appointmentDate" class="form-label small fw-semibold">Consultation Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="appointmentDate" name="appointment_date" 
+                                   min="{{ min_date }}" value="{{ target_date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 border text-secondary small">
+                                <i class="bi bi-info-circle text-primary me-1"></i>
+                                Selected Day: <strong id="selectedDayName" class="text-dark">{{ target_date.strftime('%A, %B %d, %Y') }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Available Time Slot Selection -->
+                <div class="card card-care p-4 mb-4 shadow-sm border">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <span class="badge bg-primary text-white rounded-circle me-2 px-2 py-1">3</span>
+                            Select 30-Minute Consultation Slot
+                        </h5>
+                        <!-- Slot Status Legend -->
+                        <div class="d-flex gap-2 small">
+                            <span class="badge bg-success-subtle text-success border"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i> Available</span>
+                            <span class="badge bg-danger-subtle text-danger border"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i> Booked</span>
+                            <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i> Off-Duty</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden input to store chosen slot -->
+                    <input type="hidden" name="time_slot" id="selectedTimeSlotInput" value="{{ prefilled_time_slot or '' }}" required>
+
+                    <!-- Slot Grid Container -->
+                    <div id="slotsContainer" class="py-2">
+                        <div class="d-flex flex-wrap align-items-center gap-3 mb-3 p-2 bg-light rounded-2 small">
+                            <span class="text-muted fw-semibold">Slot Legend:</span>
+                            <span class="text-success"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>Available</span>
+                            <span class="badge bg-success text-white"><i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>Selected</span>
+                            <span class="text-danger"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Booked</span>
+                        </div>
+                        {% if slots %}
+                            <div class="row g-2">
+                                {% for slot in slots %}
+                                    <div class="col-md-3 col-sm-4 col-6">
+                                        {% if slot.is_booked %}
+                                            <button type="button" class="btn btn-outline-danger w-100 py-2 small disabled" disabled title="Slot already reserved">
+                                                <i class="bi bi-x-circle me-1"></i> {{ slot.start_time }}
+                                                <span class="d-block text-muted" style="font-size: 0.65rem;">Booked</span>
+                                            </button>
+                                        {% else %}
+                                            {% set is_preselected = (prefilled_time_slot and (slot.time_slot == prefilled_time_slot or slot.start_time in prefilled_time_slot)) %}
+                                            <button type="button" class="btn {% if is_preselected %}btn-success text-white{% else %}btn-outline-success{% endif %} w-100 py-2 small slot-btn" 
+                                                    data-slot="{{ slot.time_slot }}">
+                                                <i class="bi bi-clock me-1"></i> {{ slot.start_time }}
+                                                <span class="d-block {% if is_preselected %}text-white-50{% else %}text-muted{% endif %}" style="font-size: 0.65rem;">
+                                                    {% if is_preselected %}Selected{% else %}Available{% endif %}
+                                                </span>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% elif selected_doctor %}
+                            <div class="alert alert-warning py-3 text-center mb-0 border-0">
+                                <i class="bi bi-calendar-x fs-4 d-block mb-1 text-warning"></i>
+                                Dr. {{ selected_doctor.user.full_name }} has no scheduled consultation slots on this date ({{ target_date.strftime('%A') }}).
+                                <div class="small mt-1 text-muted">Working days: <strong>{{ selected_doctor.available_days }}</strong></div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info py-3 text-center mb-0 border-0">
+                                <i class="bi bi-arrow-up-circle fs-4 d-block mb-1 text-primary"></i>
+                                Please select a hospital and physician above to view available consultation slots.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div id="selectedSlotNotice" class="alert alert-success {% if not prefilled_time_slot %}d-none{% endif %} mt-3 mb-0 py-2 px-3 small border-0">
+                        <i class="bi bi-check2-circle me-1 text-success fw-bold"></i>
+                        Selected Consultation Slot: <strong id="selectedSlotText" class="fs-6">{{ prefilled_time_slot or 'None' }}</strong>
+                    </div>
+                </div>
+
+                <!-- Step 4: Visit Details & Symptoms -->
+                <div class="card card-care p-4 shadow-sm border">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <span class="badge bg-primary text-white rounded-circle me-2 px-2 py-1">4</span>
+                        Visit Details &amp; Reason for Consultation
+                    </h5>
+
+                    <div class="mb-3">
+                        <label for="symptoms" class="form-label small fw-semibold">Symptoms / Primary Medical Complaint <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" 
+                                  placeholder="Describe the primary symptoms or complaints for this appointment (e.g. routine checkup, persistent cough, chest tightness)..." required></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" id="confirmBookingBtn" class="btn btn-care px-4 py-2 fw-semibold">
+                            <i class="bi bi-check2-circle me-2"></i>Confirm &amp; Book Appointment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Booking Summary Card -->
+            <div class="col-lg-4">
+                <div class="card card-care p-4 shadow-sm border sticky-top" style="top: 85px;">
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-receipt text-primary me-2"></i>Booking Summary
+                    </h5>
+
+                    <div class="mb-3">
+                        <span class="text-muted small d-block">Patient Information:</span>
+                        <strong class="text-dark">{{ patient.user.full_name }}</strong>
+                        <div class="small text-secondary">
+                            <i class="bi bi-telephone me-1"></i>{{ patient.user.phone or 'Contact on file' }}<br>
+                            <i class="bi bi-envelope me-1"></i>{{ patient.user.email }}<br>
+                            <span class="badge bg-danger-subtle text-danger border mt-1">Blood Group: {{ patient.blood_group or 'O+' }}</span>
+                        </div>
+                    </div>
+
+                    <hr class="my-2">
+
+                    <div class="mb-3">
+                        <span class="text-muted small d-block">Facility:</span>
+                        <strong id="summaryHospital" class="text-dark">
+                            {{ selected_hospital.name if selected_hospital else "Select Hospital" }}
+                        </strong>
+                        <div id="summaryHospitalCity" class="small text-muted">
+                            {{ selected_hospital.city if selected_hospital else "" }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="text-muted small d-block">Physician:</span>
+                        <strong id="summaryDoctor" class="text-dark">
+                            {{ "Dr. " ~ selected_doctor.user.full_name if selected_doctor and selected_doctor.user else "Select Doctor" }}
+                        </strong>
+                        <div id="summarySpecialty" class="small text-primary fw-semibold">
+                            {{ selected_doctor.specialization if selected_doctor else "" }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="text-muted small d-block">Date &amp; Time Slot:</span>
+                        <strong id="summaryDate" class="text-dark">{{ target_date.strftime('%B %d, %Y') }}</strong>
+                        <div id="summarySlot" class="small text-success fw-bold">{{ prefilled_time_slot or 'Select a time slot' }}</div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-semibold text-dark">Consultation Fee:</span>
+                        <span id="summaryFee" class="fs-5 fw-bold text-success">
+                            ${{ "%.2f"|format(selected_doctor.consultation_fee) if selected_doctor else "0.00" }}
+                        </span>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 text-secondary small border">
+                        <div class="d-flex align-items-center gap-1 text-primary fw-semibold mb-1">
+                            <i class="bi bi-shield-lock"></i> Double-Booking Protection
+                        </div>
+                        This slot is confirmed in real-time. Once reserved, your appointment receives a guaranteed unique identifier.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Dynamic Slot Fetch Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const doctorSelect = document.getElementById('doctorSelect');
+    const hospitalSelect = document.getElementById('hospitalSelect');
+    const appointmentDate = document.getElementById('appointmentDate');
+    const slotsContainer = document.getElementById('slotsContainer');
+    const selectedTimeSlotInput = document.getElementById('selectedTimeSlotInput');
+    const selectedSlotNotice = document.getElementById('selectedSlotNotice');
+    const selectedSlotText = document.getElementById('selectedSlotText');
+    const summarySlot = document.getElementById('summarySlot');
+    const summaryDate = document.getElementById('summaryDate');
+    const summaryHospital = document.getElementById('summaryHospital');
+    const summaryDoctor = document.getElementById('summaryDoctor');
+    const summarySpecialty = document.getElementById('summarySpecialty');
+    const summaryFee = document.getElementById('summaryFee');
+    const selectedDayName = document.getElementById('selectedDayName');
+
+    // Attach click listener to slots
+    function bindSlotButtons() {
+        const slotButtons = document.querySelectorAll('.slot-btn');
+        slotButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                slotButtons.forEach(b => b.classList.remove('btn-success', 'text-white'));
+                this.classList.add('btn-success', 'text-white');
+                const slot = this.getAttribute('data-slot');
+                selectedTimeSlotInput.value = slot;
+                selectedSlotText.textContent = slot;
+                summarySlot.textContent = slot;
+                selectedSlotNotice.classList.remove('d-none');
+            });
+        });
+    }
+
+    bindSlotButtons();
+
+    // Fetch dynamic slots when doctor or date changes
+    async function refreshSlots() {
+        const doctorId = doctorSelect.value;
+        const dateVal = appointmentDate.value;
+
+        if (dateVal) {
+            const d = new Date(dateVal + 'T00:00:00');
+            selectedDayName.textContent = d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            summaryDate.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        if (!doctorId || !dateVal) return;
+
+        slotsContainer.innerHTML = '<div class="text-center py-3 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Loading available slots...</div>';
+        selectedTimeSlotInput.value = '';
+        selectedSlotNotice.classList.add('d-none');
+        summarySlot.textContent = 'Select a time slot';
+
+        try {
+            const res = await fetch(`/patient/api/slots?doctor_id=${doctorId}&date=${dateVal}`);
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                if (!data.is_working_day || !data.slots || data.slots.length === 0) {
+                    slotsContainer.innerHTML = `<div class="alert alert-warning py-3 text-center mb-0 border-0">
+                        <i class="bi bi-calendar-x fs-4 d-block mb-1 text-warning"></i>
+                        Physician has no scheduled consultation slots on this date.
+                    </div>`;
+                    return;
+                }
+
+                let html = '<div class="row g-2">';
+                data.slots.forEach(slot => {
+                    if (slot.is_booked) {
+                        html += `<div class="col-md-3 col-sm-4 col-6">
+                            <button type="button" class="btn btn-outline-danger w-100 py-2 small disabled" disabled title="Slot already reserved">
+                                <i class="bi bi-x-circle me-1"></i> ${slot.start_time}
+                                <span class="d-block text-muted" style="font-size: 0.65rem;">Booked</span>
+                            </button>
+                        </div>`;
+                    } else {
+                        html += `<div class="col-md-3 col-sm-4 col-6">
+                            <button type="button" class="btn btn-outline-success w-100 py-2 small slot-btn" data-slot="${slot.time_slot}">
+                                <i class="bi bi-clock me-1"></i> ${slot.start_time}
+                                <span class="d-block text-muted" style="font-size: 0.65rem;">Available</span>
+                            </button>
+                        </div>`;
+                    }
+                });
+                html += '</div>';
+                slotsContainer.innerHTML = html;
+                bindSlotButtons();
+            } else {
+                slotsContainer.innerHTML = `<div class="alert alert-danger py-2 small">${data.message || 'Error loading slots.'}</div>`;
+            }
+        } catch (err) {
+            slotsContainer.innerHTML = '<div class="alert alert-danger py-2 small">Network error while retrieving slots.</div>';
+        }
+    }
+
+    // Doctor select change
+    doctorSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        if (opt && opt.value) {
+            summaryDoctor.textContent = opt.text.split('(')[0].trim();
+            summarySpecialty.textContent = opt.getAttribute('data-specialty') || '';
+            const fee = parseFloat(opt.getAttribute('data-fee') || '0').toFixed(2);
+            summaryFee.textContent = `$${fee}`;
+            const hospId = opt.getAttribute('data-hospital');
+            if (hospId && hospitalSelect.value != hospId) {
+                hospitalSelect.value = hospId;
+                const hospOpt = hospitalSelect.options[hospitalSelect.selectedIndex];
+                if (hospOpt) summaryHospital.textContent = hospOpt.text.split('(')[0].trim();
+            }
+        }
+        refreshSlots();
+    });
+
+    // Hospital select change
+    hospitalSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        if (opt && opt.value) {
+            summaryHospital.textContent = opt.text.split('(')[0].trim();
+        }
+    });
+
+    // Date change
+    appointmentDate.addEventListener('change', refreshSlots);
+
+    // Form submission validation
+    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        if (!selectedTimeSlotInput.value) {
+            e.preventDefault();
+            alert('Please select an available 30-minute consultation slot before submitting.');
+        }
+    });
+});
+</script>
+{% endblock %}

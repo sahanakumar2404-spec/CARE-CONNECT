@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-8">
+            <!-- Role Selector Nav Tabs -->
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <a href="{{ url_for('auth.login') }}" class="btn {% if not target_role %}btn-primary{% else %}btn-outline-secondary{% endif %} btn-sm px-3 rounded-pill">
+                    All Portals
+                </a>
+                <a href="{{ url_for('auth.login', role='hospital') }}" class="btn {% if target_role == 'hospital' %}btn-info text-white{% else %}btn-outline-secondary{% endif %} btn-sm px-3 rounded-pill">
+                    <i class="bi bi-hospital me-1"></i> Hospital
+                </a>
+                <a href="{{ url_for('auth.login', role='doctor') }}" class="btn {% if target_role == 'doctor' %}btn-success text-white{% else %}btn-outline-secondary{% endif %} btn-sm px-3 rounded-pill">
+                    <i class="bi bi-stethoscope me-1"></i> Doctor
+                </a>
+                <a href="{{ url_for('auth.login', role='patient') }}" class="btn {% if target_role == 'patient' %}btn-purple text-white{% else %}btn-outline-secondary{% endif %} btn-sm px-3 rounded-pill" style="{% if target_role == 'patient' %}background-color: #7c3aed;{% endif %}">
+                    <i class="bi bi-person me-1"></i> Patient
+                </a>
+            </div>
+
+            <div class="card card-care shadow-lg p-4 p-md-5 border-0">
+                <div class="text-center mb-4">
+                    <div class="brand-badge mb-3 mx-auto" style="width: 52px; height: 52px; font-size: 1.6rem;
+                        {% if target_role == 'hospital' %}background: linear-gradient(135deg, #0284c7 0%, #0f766e 100%);
+                        {% elif target_role == 'doctor' %}background: linear-gradient(135deg, #0f766e 0%, #059669 100%);
+                        {% elif target_role == 'patient' %}background: linear-gradient(135deg, #7c3aed 0%, #0284c7 100%);
+                        {% else %}background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%);{% endif %}">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">
+                        {% if target_role == 'hospital' %}Hospital Management Login
+                        {% elif target_role == 'doctor' %}Doctor Portal Login
+                        {% elif target_role == 'patient' %}Patient Portal Login
+                        {% else %}Care Connect Sign In{% endif %}
+                    </h3>
+                    <p class="text-muted small">Enter your credentials to securely access your dedicated workspace</p>
+                </div>
+
+                <!-- 1-Click Evaluation Demo Fill Helpers -->
+                <div class="p-3 bg-light rounded-3 mb-4 border">
+                    <span class="small fw-bold text-dark d-block mb-2">
+                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Evaluation Demo Accounts:
+                    </span>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-info flex-grow-1" onclick="fillLogin('admin@careconnect.org', 'admin123')">
+                            Hospital Admin
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success flex-grow-1" onclick="fillLogin('dr.smith@careconnect.org', 'doctor123')">
+                            Doctor
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-purple flex-grow-1" style="border-color: #8b5cf6; color: #7c3aed;" onclick="fillLogin('patient@careconnect.org', 'patient123')">
+                            Patient
+                        </button>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.login', role=target_role, next=request.args.get('next')) }}">
+                    <input type="hidden" name="role" value="{{ target_role }}">
+
+                    <div class="mb-3">
+                        <label for="identifier" class="form-label fw-semibold small">Email or Username *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="identifier" name="identifier" placeholder="e.g. admin@careconnect.org" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="password" class="form-label fw-semibold small mb-0">Password *</label>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                            <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-care w-100 py-2 mb-3">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In to Dashboard
+                    </button>
+                </form>
+
+                <!-- Navigation between registration types -->
+                <div class="mt-3 pt-3 border-top text-center">
+                    <p class="small text-muted mb-2">Need a new account? Choose your role:</p>
+                    <div class="d-flex justify-content-center gap-3 small flex-wrap">
+                        <a href="{{ url_for('auth.register_patient') }}" class="text-primary fw-semibold">
+                            <i class="bi bi-person-plus me-1"></i> Patient
+                        </a>
+                        <span class="text-muted">&bull;</span>
+                        <a href="{{ url_for('auth.register_doctor') }}" class="text-success fw-semibold">
+                            <i class="bi bi-stethoscope me-1"></i> Doctor
+                        </a>
+                        <span class="text-muted">&bull;</span>
+                        <a href="{{ url_for('auth.register_hospital') }}" class="text-info fw-semibold">
+                            <i class="bi bi-hospital me-1"></i> Hospital
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

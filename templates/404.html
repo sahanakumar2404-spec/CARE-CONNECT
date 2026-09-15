@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Not Found - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center my-5">
+    <div class="display-1 fw-bold text-muted mb-3">404</div>
+    <h2 class="fw-bold mb-3">Requested Page Not Found</h2>
+    <p class="text-secondary mb-4">The healthcare navigation path you requested does not exist or may have moved.</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-care">
+        <i class="bi bi-house me-2"></i>Return to Home
+    </a>
+</div>
+{% endblock %}

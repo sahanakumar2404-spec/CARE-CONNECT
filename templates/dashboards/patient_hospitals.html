@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Registered Hospitals Directory - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Registered Hospitals</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-info-subtle text-info border">Verified Network</span>
+                    <span class="badge bg-success-subtle text-success border">{{ hospitals|length }} Facilities Found</span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Care Connect Hospital Directory</h2>
+                <p class="text-secondary small mb-0">
+                    Explore registered healthcare centers, discover specialized clinics, and browse on-duty physicians.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="card card-care p-4 mb-4 shadow-sm">
+        <form method="GET" action="{{ url_for('patient.hospitals') }}" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="name" class="form-label small fw-semibold">Search Hospital Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control" id="name" name="name" 
+                        value="{{ search_name }}" placeholder="e.g. Metro General...">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label for="city" class="form-label small fw-semibold">Filter by City</label>
+                <select class="form-select" id="city" name="city">
+                    <option value="">All Cities</option>
+                    {% for c in all_cities %}
+                        {% if c %}
+                            <option value="{{ c }}" {% if selected_city == c %}selected{% endif %}>{{ c }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="type" class="form-label small fw-semibold">Facility Type</label>
+                <select class="form-select" id="type" name="type">
+                    <option value="">All Hospital Types</option>
+                    {% for t in all_types %}
+                        {% if t %}
+                            <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-care w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                {% if search_name or selected_city or selected_type %}
+                    <a href="{{ url_for('patient.hospitals') }}" class="btn btn-outline-secondary" title="Reset Filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Hospital Cards Grid -->
+    {% if hospitals %}
+        <div class="row g-4">
+            {% for h in hospitals %}
+                <div class="col-lg-6">
+                    <div class="card card-care h-100 p-4 shadow-sm d-flex flex-column justify-content-between border">
+                        <div>
+                            <!-- Top bar: Hospital Name and Badges -->
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <h5 class="fw-bold mb-1 text-dark">
+                                        <a href="{{ url_for('patient.hospital_detail', hospital_id=h.id) }}" class="text-decoration-none text-dark hover-primary">
+                                            {{ h.name }}
+                                        </a>
+                                    </h5>
+                                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                                        <span class="badge bg-primary-subtle text-primary border">{{ h.hospital_type or 'General Hospital' }}</span>
+                                        <span class="badge bg-light text-muted border">ID: {{ h.registration_number }}</span>
+                                        {% if h.emergency_available %}
+                                            <span class="badge bg-danger-subtle text-danger border">
+                                                <i class="bi bi-lightning-charge-fill me-1"></i>24/7 Emergency
+                                            </span>
+                                        {% endif %}
+                                        {% if h.user and h.user.is_active %}
+                                            <span class="badge bg-success-subtle text-success border">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Verified
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="stat-icon bg-info-subtle text-info flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                                    <i class="bi bi-hospital"></i>
+                                </div>
+                            </div>
+
+                            <!-- Address & Contact -->
+                            <div class="text-secondary small my-3">
+                                <p class="mb-1"><i class="bi bi-geo-alt text-danger me-2"></i>{{ h.address }}, <strong>{{ h.city }}</strong></p>
+                                <p class="mb-1"><i class="bi bi-telephone text-success me-2"></i>{{ h.contact_phone or h.contact_email or 'Available on file' }}</p>
+                                {% if h.contact_email %}
+                                    <p class="mb-0"><i class="bi bi-envelope text-primary me-2"></i>{{ h.contact_email }}</p>
+                                {% elif h.user and h.user.email %}
+                                    <p class="mb-0"><i class="bi bi-envelope text-primary me-2"></i>{{ h.user.email }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Beds & Staffing Quick Stats -->
+                            <div class="row g-2 text-center my-3">
+                                <div class="col-4">
+                                    <div class="p-2 bg-light rounded-2 border">
+                                        <div class="small text-muted" style="font-size: 0.75rem;">Total Beds</div>
+                                        <div class="fw-bold text-dark">{{ h.total_beds }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 bg-light rounded-2 border">
+                                        <div class="small text-muted" style="font-size: 0.75rem;">Available</div>
+                                        <div class="fw-bold text-success">{{ h.available_beds }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 bg-light rounded-2 border">
+                                        <div class="small text-muted" style="font-size: 0.75rem;">Doctors</div>
+                                        <div class="fw-bold text-primary">{{ h.doctors.count() }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Action -->
+                        <div class="pt-3 border-top mt-3 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">
+                                <i class="bi bi-people me-1"></i>{{ h.doctors.count() }} Specialists on Staff
+                            </span>
+                            <a href="{{ url_for('patient.hospital_detail', hospital_id=h.id) }}" class="btn btn-outline-primary btn-sm">
+                                View Specialists &amp; Details <i class="bi bi-chevron-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card card-care p-5 text-center shadow-sm">
+            <div class="mb-3">
+                <i class="bi bi-building-x text-muted" style="font-size: 3.5rem;"></i>
+            </div>
+            <h4 class="fw-bold text-dark">No Hospitals Found</h4>
+            <p class="text-muted mb-4">No registered hospitals matched your search criteria. Try modifying your search keywords or city filter.</p>
+            <div>
+                <a href="{{ url_for('patient.hospitals') }}" class="btn btn-care">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters &amp; View All
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Appointment Verification - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            {% if valid %}
+                <div class="card shadow border-0 rounded-4 overflow-hidden">
+                    {% if appointment.status == 'cancelled' %}
+                        <!-- Cancelled Banner -->
+                        <div class="bg-danger text-white text-center py-4 px-3">
+                            <i class="bi bi-x-circle-fill display-4 mb-2 d-block"></i>
+                            <h3 class="fw-bold mb-1">Appointment Cancelled</h3>
+                            <p class="mb-0 small opacity-75">This appointment was cancelled and is no longer valid for admission.</p>
+                        </div>
+                    {% elif appointment.status == 'completed' %}
+                        <!-- Completed Banner -->
+                        <div class="bg-secondary text-white text-center py-4 px-3">
+                            <i class="bi bi-check2-all display-4 mb-2 d-block"></i>
+                            <h3 class="fw-bold mb-1">Appointment Completed</h3>
+                            <p class="mb-0 small opacity-75">This consultation has already been conducted and concluded.</p>
+                        </div>
+                    {% else %}
+                        <!-- Verified Active Banner -->
+                        <div class="bg-success text-white text-center py-4 px-3">
+                            <i class="bi bi-patch-check-fill display-4 mb-2 d-block"></i>
+                            <h3 class="fw-bold mb-1">Appointment Verified</h3>
+                            <p class="mb-0 small opacity-90">Official digital verification confirmed via Care Connect Registry</p>
+                        </div>
+                    {% endif %}
+
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                            <div>
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Appointment Number</span>
+                                <span class="fs-5 fw-bold text-dark font-monospace">{{ appointment.appointment_number or 'CC-' ~ appointment.id }}</span>
+                            </div>
+                            <div>
+                                {% if appointment.status == 'cancelled' %}
+                                    <span class="badge-status-cancelled"><i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i>Cancelled</span>
+                                {% elif appointment.status == 'completed' %}
+                                    <span class="badge-status-completed"><i class="bi bi-patch-check-fill me-1" aria-hidden="true"></i>Completed</span>
+                                {% else %}
+                                    <span class="badge-status-confirmed"><i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>Confirmed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <span class="text-muted small fw-semibold d-block mb-1">
+                                        <i class="bi bi-hospital text-primary me-1"></i> Hospital Facility
+                                    </span>
+                                    <div class="fw-bold text-dark">{{ hospital.name if hospital else 'Care Connect Partner Hospital' }}</div>
+                                    <div class="small text-muted">{{ hospital.city if hospital else '' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <span class="text-muted small fw-semibold d-block mb-1">
+                                        <i class="bi bi-person-badge text-primary me-1"></i> Attending Physician
+                                    </span>
+                                    <div class="fw-bold text-dark">
+                                        {% if doctor_user %}
+                                            {{ doctor_user.full_name if doctor_user.full_name.startswith('Dr.') else 'Dr. ' ~ doctor_user.full_name }}
+                                        {% else %}
+                                            Attending Physician
+                                        {% endif %}
+                                    </div>
+                                    <div class="small text-muted">{{ doctor.specialization if doctor else 'Specialist' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <span class="text-muted small fw-semibold d-block mb-1">
+                                        <i class="bi bi-calendar-event text-primary me-1"></i> Consultation Date
+                                    </span>
+                                    <div class="fw-bold text-dark">
+                                        {{ appointment.appointment_date.strftime('%A, %B %d, %Y') if appointment.appointment_date else 'Scheduled Date' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <span class="text-muted small fw-semibold d-block mb-1">
+                                        <i class="bi bi-clock text-primary me-1"></i> Scheduled Time Slot
+                                    </span>
+                                    <div class="fw-bold text-dark">{{ appointment.time_slot }}</div>
+                                    {% if doctor and doctor.room_number %}
+                                        <div class="small text-muted">{{ doctor.room_number }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verification Privacy Notice -->
+                        <div class="alert alert-light border mt-4 mb-0 text-center py-3">
+                            <i class="bi bi-shield-lock-fill text-success me-1"></i>
+                            <span class="small text-muted">
+                                Patient privacy protected. Public verification displays only scheduling validity and doctor/facility details.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-light p-3 text-center border-top">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Care Connect Home
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Invalid Verification Card -->
+                <div class="card shadow border-0 rounded-4 overflow-hidden">
+                    <div class="bg-danger text-white text-center py-4 px-3">
+                        <i class="bi bi-exclamation-triangle-fill display-4 mb-2 d-block"></i>
+                        <h3 class="fw-bold mb-1">Invalid Appointment</h3>
+                        <p class="mb-0 small opacity-75">Verification token was not found in the Care Connect Registry.</p>
+                    </div>
+                    <div class="card-body p-4 p-md-5 text-center">
+                        <p class="text-muted mb-4">
+                            The scanned QR code or digital pass token does not correspond to an active or recognized healthcare appointment record.
+                        </p>
+                        {% if token %}
+                            <div class="p-3 bg-light rounded-3 font-monospace small text-break mb-4 text-muted">
+                                Token: {{ token }}
+                            </div>
+                        {% endif %}
+                        <div class="alert alert-warning small mb-4 text-start">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            If you believe this is an error, please present your digital confirmation PDF or contact hospital administration for manual verification.
+                        </div>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary px-4">
+                            <i class="bi bi-house-door me-1"></i> Return to Homepage
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

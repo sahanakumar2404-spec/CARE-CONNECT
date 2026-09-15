@@ -1,0 +1,103 @@
+{% if appt_list %}
+    <div class="card card-care border-0 shadow-sm overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th scope="col">Appointment #</th>
+                        <th scope="col">Hospital Facility</th>
+                        <th scope="col">Physician &amp; Specialization</th>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in appt_list %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary font-monospace fs-6">
+                                {{ appt.appointment_number or appt.appointment_uid[:8] }}
+                            </span>
+                            <div class="small text-muted font-monospace" style="font-size: 0.7rem;">
+                                UID: {{ appt.appointment_uid[:8] }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ appt.hospital.name if appt.hospital else "Hospital Facility" }}</div>
+                            <span class="small text-muted"><i class="bi bi-geo-alt me-1" aria-hidden="true"></i>{{ appt.hospital.city if appt.hospital else "" }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">
+                                {{ appt.doctor.user.full_name if appt.doctor and appt.doctor.user else "Physician" }}
+                            </div>
+                            <span class="badge bg-light text-dark border">{{ appt.doctor.specialization if appt.doctor else "Specialist" }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">
+                                <i class="bi bi-calendar-event text-primary me-1" aria-hidden="true"></i>{{ appt.appointment_date }}
+                            </div>
+                            <span class="small text-muted"><i class="bi bi-clock me-1" aria-hidden="true"></i>{{ appt.time_slot }}</span>
+                        </td>
+                        <td>
+                            {% if appt.status == 'cancelled' %}
+                                <span class="badge-status-cancelled">
+                                    <i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i> Cancelled
+                                </span>
+                            {% elif appt.status == 'completed' %}
+                                <span class="badge-status-completed">
+                                    <i class="bi bi-patch-check-fill me-1" aria-hidden="true"></i> Completed
+                                </span>
+                            {% else %}
+                                <span class="badge-status-confirmed text-capitalize">
+                                    <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i> {{ appt.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                                <!-- View Confirmation -->
+                                <a href="{{ url_for('patient.booking_confirmation', appointment_id=appt.id) }}" class="btn btn-sm btn-outline-secondary" title="View Digital Pass" aria-label="View digital confirmation pass">
+                                    <i class="bi bi-receipt" aria-hidden="true"></i> <span class="d-none d-md-inline">Pass</span>
+                                </a>
+
+                                <!-- Download PDF -->
+                                <a href="{{ url_for('patient.download_appointment_pdf', appointment_id=appt.id) }}" class="btn btn-sm btn-outline-primary" title="Download Official PDF" aria-label="Download appointment PDF">
+                                    <i class="bi bi-file-earmark-pdf-fill" aria-hidden="true"></i> <span class="d-none d-md-inline">PDF</span>
+                                </a>
+
+                                <!-- QR Public Verification -->
+                                {% if appt.verification_token %}
+                                    <a href="{{ url_for('main.verify_appointment', token=appt.verification_token) }}" target="_blank" class="btn btn-sm btn-outline-info" title="Verify Online via QR Token" aria-label="Verify appointment online">
+                                        <i class="bi bi-patch-check-fill" aria-hidden="true"></i> <span class="d-none d-md-inline">Verify</span>
+                                    </a>
+                                {% endif %}
+
+                                <!-- Cancel Action (Only active and not past) -->
+                                {% if appt.status not in ['cancelled', 'completed'] and appt.appointment_date >= today %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ appt.id }}" title="Cancel Appointment" aria-label="Cancel this appointment">
+                                        <i class="bi bi-x-circle" aria-hidden="true"></i> <span class="d-none d-md-inline">Cancel</span>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="empty-state-card mb-4">
+        <div class="empty-state-icon">
+            <i class="bi bi-calendar-x" aria-hidden="true"></i>
+        </div>
+        <h5 class="fw-bold mb-1">{{ empty_msg }}</h5>
+        <p class="small text-muted mb-3">No appointment records match this category.</p>
+        <div>
+            <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-sm btn-care">
+                <i class="bi bi-calendar-plus me-1" aria-hidden="true"></i> Book a Consultation
+            </a>
+        </div>
+    </div>
+{% endif %}

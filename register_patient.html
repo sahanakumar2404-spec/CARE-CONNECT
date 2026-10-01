@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Registration - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Role Switcher Nav -->
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <a href="{{ url_for('auth.register_patient') }}" class="btn btn-purple btn-sm px-3 rounded-pill text-white fw-semibold" style="background-color: #7c3aed;">
+                    <i class="bi bi-person me-1"></i> Patient Register
+                </a>
+                <a href="{{ url_for('auth.register_doctor') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                    <i class="bi bi-stethoscope me-1"></i> Doctor Join
+                </a>
+                <a href="{{ url_for('auth.register_hospital') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                    <i class="bi bi-hospital me-1"></i> Hospital Register
+                </a>
+            </div>
+
+            <div class="card card-care shadow-lg p-4 p-md-5 border-0">
+                <div class="text-center mb-4">
+                    <div class="brand-badge mb-3 mx-auto" style="width: 52px; height: 52px; font-size: 1.6rem; background: linear-gradient(135deg, #7c3aed 0%, #0284c7 100%);">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Create Patient Account</h3>
+                    <p class="text-muted small">Access AI symptom triage, schedule verified doctor appointments, and maintain health records</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.register_patient') }}">
+                    <!-- Personal Profile -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-person-lines-fill me-1"></i> Personal Information
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label fw-semibold small">Full Name *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ form_data.full_name if form_data else '' }}" placeholder="e.g. Jordan Lee" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label fw-semibold small">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ form_data.email if form_data else '' }}" placeholder="jordan@example.com" required>
+                            <div class="form-text">Used for sign-in and appointment QR passes.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="phone" class="form-label fw-semibold small">Mobile Number *</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ form_data.phone if form_data else '' }}" placeholder="+1 (555) 012-3456" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="date_of_birth" class="form-label fw-semibold small">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ form_data.date_of_birth if form_data else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="gender" class="form-label fw-semibold small">Gender</label>
+                            <select class="form-select" id="gender" name="gender">
+                                <option value="Male" {% if form_data and form_data.gender == 'Male' %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if form_data and form_data.gender == 'Female' %}selected{% endif %}>Female</option>
+                                <option value="Other" {% if form_data and form_data.gender == 'Other' %}selected{% endif %}>Other / Prefer not to say</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="address" class="form-label fw-semibold small">Residential Address</label>
+                            <input type="text" class="form-control" id="address" name="address" value="{{ form_data.address if form_data else '' }}" placeholder="Street address, apartment or suite">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="city" class="form-label fw-semibold small">City</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ form_data.city if form_data else 'New York' }}">
+                        </div>
+                    </div>
+
+                    <!-- Security Credentials -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-shield-lock me-1"></i> Account Security
+                    </h6>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label fw-semibold small">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 characters" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label fw-semibold small">Confirm Password *</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-care w-100 py-2 mb-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);">
+                        <i class="bi bi-check-circle-fill me-2"></i> Register Patient Account & Open Dashboard
+                    </button>
+                </form>
+
+                <div class="text-center mt-2 pt-3 border-top">
+                    <p class="small text-muted mb-0">
+                        Already registered? <a href="{{ url_for('auth.login', role='patient') }}" class="fw-semibold text-primary">Patient Sign In</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

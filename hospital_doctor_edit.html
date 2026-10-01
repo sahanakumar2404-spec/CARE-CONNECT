@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Doctor Profile - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Breadcrumbs / Top Nav -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{{ url_for('hospital.dashboard') }}">Hospital Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('hospital.doctors') }}">Doctors</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Edit {{ doctor.user.full_name if doctor.user else "Doctor" }}</li>
+                    </ol>
+                </nav>
+                <a href="{{ url_for('hospital.doctors') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Doctors
+                </a>
+            </div>
+
+            <!-- Edit Form Card -->
+            <div class="card card-care shadow-sm p-4 p-md-5 border-0">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="stat-icon bg-primary-subtle text-primary" style="width: 52px; height: 52px; font-size: 1.6rem;">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0">Edit Doctor Clinical Profile</h4>
+                        <p class="text-muted small mb-0">Affiliated with <strong>{{ hospital.name }}</strong></p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('hospital.edit_doctor', doctor_id=doctor.id) }}">
+                    <!-- Personal & Clinical Information -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-person-lines-fill me-1"></i> Physician Details
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label fw-semibold small">Doctor Full Name *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ doctor.user.full_name if doctor.user else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label fw-semibold small">Contact Phone</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ doctor.user.phone if doctor.user else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="specialization" class="form-label fw-semibold small">Specialization *</label>
+                            <input type="text" class="form-control" id="specialization" name="specialization" value="{{ doctor.specialization }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="qualification" class="form-label fw-semibold small">Qualifications *</label>
+                            <input type="text" class="form-control" id="qualification" name="qualification" value="{{ doctor.qualification }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Schedule & Location -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2 mt-4">
+                        <i class="bi bi-clock-history me-1"></i> Consultation Schedule & Logistics
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="available_days" class="form-label fw-semibold small">Consulting Days</label>
+                            <input type="text" class="form-control" id="available_days" name="available_days" value="{{ doctor.available_days }}" placeholder="e.g. Monday - Friday">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="available_time" class="form-label fw-semibold small">Consulting Hours</label>
+                            <input type="text" class="form-control" id="available_time" name="available_time" value="{{ doctor.available_time }}" placeholder="e.g. 09:00 AM - 05:00 PM">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="room_number" class="form-label fw-semibold small">Room / Clinic Office</label>
+                            <input type="text" class="form-control" id="room_number" name="room_number" value="{{ doctor.room_number }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="experience_years" class="form-label fw-semibold small">Years Experience</label>
+                            <input type="number" class="form-control" id="experience_years" name="experience_years" value="{{ doctor.experience_years }}" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="consultation_fee" class="form-label fw-semibold small">Fee ($ USD)</label>
+                            <input type="number" class="form-control" id="consultation_fee" name="consultation_fee" value="{{ doctor.consultation_fee }}" min="0" step="5">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="bio" class="form-label fw-semibold small">Professional Biography / Specialty Focus</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3">{{ doctor.bio or '' }}</textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{{ url_for('hospital.doctors') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-care">
+                            <i class="bi bi-check-circle-fill me-1"></i> Save Doctor Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

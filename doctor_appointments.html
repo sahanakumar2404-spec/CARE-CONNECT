@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Consultations Queue - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge badge-doctor px-3 py-1">Clinical Queue & Appointments</span>
+                    <span class="badge bg-primary-subtle text-primary">{{ total_count }} Total Records</span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Patient Consultations & Queue</h2>
+                <p class="text-secondary small mb-0">
+                    Dr. {{ doctor.user.full_name }} &bull;
+                    <span class="text-primary fw-semibold">{{ doctor.specialization }}</span> &bull; 
+                    <i class="bi bi-building ms-1"></i> {{ doctor.hospital.name if doctor.hospital else "Affiliated Hospital" }} ({{ doctor.room_number }})
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </a>
+                <a href="{{ url_for('doctor.patients') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-people me-1"></i> Patient Roster
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Today's Queue</span>
+                <h3 class="fw-bold text-teal mb-0" style="color: #0f766e;">{{ today_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Upcoming</span>
+                <h3 class="fw-bold text-primary mb-0">{{ upcoming_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Completed</span>
+                <h3 class="fw-bold text-secondary mb-0">{{ completed_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Cancelled</span>
+                <h3 class="fw-bold text-danger mb-0">{{ cancelled_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="card card-care p-3 border-0 shadow-sm mb-4">
+        <form method="GET" action="{{ url_for('doctor.appointments') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0" placeholder="Search patient name or appointment #..." value="{{ search_patient }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="date" class="form-control form-control-sm" value="{{ date_filter }}" title="Filter by Consultation Date">
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="today" {% if status_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                {% if search_patient or date_filter or status_filter %}
+                    <a href="{{ url_for('doctor.appointments') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- 1. Today's Consultations -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="bi bi-calendar-day text-teal me-2" style="color: #0f766e;"></i>Today's Consultations</h5>
+                <p class="text-secondary small mb-0">Active patients scheduled for consultation today</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary fs-6">{{ today_appointments|length }} Patients</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th scope="col">Appointment #</th>
+                        <th scope="col">Patient Name</th>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Reported Symptoms / Reason</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in today_appointments %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary font-monospace fs-6">{{ appt.appointment_number or appt.appointment_uid[:8] }}</span>
+                            <span class="d-none">{{ appt.appointment_uid }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</div>
+                            <span class="small text-muted">{{ appt.patient.city or '' }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ appt.appointment_date }}</div>
+                            <span class="badge bg-light text-primary border">{{ appt.time_slot }}</span>
+                        </td>
+                        <td class="small text-muted" style="max-width: 250px;">
+                            {{ appt.symptoms or 'General consultation' }}
+                        </td>
+                        <td>
+                            <span class="badge-status-confirmed text-capitalize">
+                                <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>{{ appt.status }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('doctor.update_appointment_status', appointment_id=appt.id) }}" class="d-inline">
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-check2-circle me-1"></i> Mark Completed
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-calendar-x fs-3 text-secondary d-block mb-1"></i>
+                            <span>No patient consultations scheduled for today.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. Upcoming Consultations -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="bi bi-calendar-week text-primary me-2"></i>Upcoming Consultations</h5>
+                <p class="text-secondary small mb-0">Future scheduled consultations</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary">{{ upcoming_appointments|length }} Upcoming</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th scope="col">Appointment #</th>
+                        <th scope="col">Patient Name</th>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Reported Symptoms / Reason</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in upcoming_appointments %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary font-monospace">{{ appt.appointment_number or appt.appointment_uid[:8] }}</span>
+                            <span class="d-none">{{ appt.appointment_uid }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</div>
+                            <span class="text-muted small">DOB: {{ appt.patient.date_of_birth or 'N/A' }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ appt.appointment_date }}</div>
+                            <span class="badge bg-light text-primary border">{{ appt.time_slot }}</span>
+                        </td>
+                        <td class="small text-muted" style="max-width: 250px;">
+                            {{ appt.symptoms or 'General consultation' }}
+                        </td>
+                        <td>
+                            <span class="badge-status-confirmed text-capitalize">
+                                <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>{{ appt.status }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('doctor.update_appointment_status', appointment_id=appt.id) }}" class="d-inline">
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-check2-circle me-1"></i> Mark Completed
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-clock-history fs-3 text-secondary d-block mb-1"></i>
+                            <span>No upcoming consultations found.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. Completed Consultations -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="bi bi-check-circle text-secondary me-2"></i>Completed Consultations</h5>
+                <p class="text-secondary small mb-0">Consultations concluded successfully</p>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ completed_appointments|length }} Completed</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th scope="col">Appointment #</th>
+                        <th scope="col">Patient Name</th>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Reported Symptoms / Reason</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in completed_appointments %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ appt.appointment_number or appt.appointment_uid[:8] }}</span>
+                            <span class="d-none">{{ appt.appointment_uid }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</div>
+                        </td>
+                        <td>
+                            <div class="text-dark">{{ appt.appointment_date }}</div>
+                            <span class="small text-muted">{{ appt.time_slot }}</span>
+                        </td>
+                        <td class="small text-muted" style="max-width: 250px;">
+                            {{ appt.symptoms or 'General consultation' }}
+                        </td>
+                        <td>
+                            <span class="badge-status-completed">
+                                <i class="bi bi-patch-check-fill me-1" aria-hidden="true"></i>Completed
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <span>No completed consultation records.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. Cancelled Consultations -->
+    <div class="card card-care p-4 border-0 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="bi bi-x-octagon text-danger me-2"></i>Cancelled Consultations</h5>
+                <p class="text-secondary small mb-0">Appointments cancelled by patients</p>
+            </div>
+            <span class="badge bg-danger-subtle text-danger">{{ cancelled_appointments|length }} Cancelled</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th scope="col">Appointment #</th>
+                        <th scope="col">Patient Name</th>
+                        <th scope="col">Original Date &amp; Slot</th>
+                        <th scope="col">Reported Symptoms</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in cancelled_appointments %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-danger-subtle text-danger font-monospace">{{ appt.appointment_number or appt.appointment_uid[:8] }}</span>
+                            <span class="d-none">{{ appt.appointment_uid }}</span>
+                        </td>
+                        <td>
+                            <div class="text-muted">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</div>
+                        </td>
+                        <td>
+                            <div class="text-muted">{{ appt.appointment_date }} &bull; {{ appt.time_slot }}</div>
+                        </td>
+                        <td class="small text-muted" style="max-width: 250px;">
+                            {{ appt.symptoms or 'N/A' }}
+                        </td>
+                        <td>
+                            <span class="badge-status-cancelled">
+                                <i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i>Cancelled
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <span>No cancelled appointment records.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

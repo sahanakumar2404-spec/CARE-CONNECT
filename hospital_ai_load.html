@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Patient Load Prediction - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge badge-hospital px-3 py-1">
+                        <i class="bi bi-graph-up-arrow me-1"></i> AI Operational Analytics
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary">Capacity Planning</span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">AI Patient Load Prediction</h2>
+                <p class="text-secondary small mb-0">
+                    Use historical appointment activity to estimate expected patient load for upcoming days.
+                </p>
+                <div class="text-muted small mt-1">
+                    <i class="bi bi-building me-1"></i> {{ hospital.name }} &bull; {{ hospital.city }}
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('hospital.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-speedometer2 me-1"></i> Hospital Dashboard
+                </a>
+                <a href="{{ url_for('hospital.appointments') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-calendar-event me-1"></i> Consultations Queue
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mandatory Operational Disclaimer -->
+    <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-3 mb-4" role="alert">
+        <i class="bi bi-info-circle-fill text-info fs-3 flex-shrink-0 mt-1"></i>
+        <div>
+            <div class="fw-bold text-dark mb-1">Operational Capacity Planning Notice</div>
+            <p class="small mb-0 text-dark">
+                Predictions are estimates based on historical Care Connect appointment activity and may differ from actual patient volume.
+                This feature is designed exclusively for staffing and facility resource preparation and does not predict medical outcomes.
+            </p>
+        </div>
+    </div>
+
+    {% if has_sufficient_data %}
+        <!-- 1. Top Summary Metric Cards -->
+        <div class="row g-3 mb-4">
+            <!-- 1. Today's Appointments -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="card card-care p-3 border-0 shadow-sm text-center h-100">
+                    <span class="text-muted small fw-semibold d-block mb-1">Today's Appointments</span>
+                    <h3 class="fw-bold text-dark mb-0">{{ prediction.today_count }}</h3>
+                    <span class="text-muted small">Actual count</span>
+                </div>
+            </div>
+
+            <!-- 2. 7-Day Average -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="card card-care p-3 border-0 shadow-sm text-center h-100">
+                    <span class="text-muted small fw-semibold d-block mb-1">7-Day Average</span>
+                    <h3 class="fw-bold text-primary mb-0">{{ prediction.recent_average }}</h3>
+                    <span class="text-muted small">Recent daily baseline</span>
+                </div>
+            </div>
+
+            <!-- 3. Predicted Tomorrow -->
+            <div class="col-lg-3 col-md-4 col-12">
+                <div class="card card-care p-3 border-0 shadow-sm text-center h-100" style="background: #f0fdfa; border-left: 4px solid #0f766e !important;">
+                    <span class="text-teal small fw-bold d-block mb-1" style="color: #0f766e;">Predicted Tomorrow</span>
+                    <h2 class="fw-bold mb-0" style="color: #0f766e;">{{ prediction.predicted_tomorrow }}</h2>
+                    <span class="text-muted small">Estimated patient volume</span>
+                </div>
+            </div>
+
+            <!-- 4. Trend -->
+            <div class="col-lg-3 col-md-6 col-6">
+                <div class="card card-care p-3 border-0 shadow-sm text-center h-100">
+                    <span class="text-muted small fw-semibold d-block mb-1">Operational Trend</span>
+                    <div>
+                        <span class="badge {% if prediction.trend_badge == 'Higher' %}bg-danger-subtle text-danger border border-danger-subtle{% elif prediction.trend_badge == 'Lower' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-success-subtle text-success border border-success-subtle{% endif %} px-3 py-2 fs-6">
+                            {{ prediction.trend }}
+                        </span>
+                    </div>
+                    <span class="text-muted small mt-1 d-block">Compared with recent average</span>
+                </div>
+            </div>
+
+            <!-- 5. Confidence -->
+            <div class="col-lg-2 col-md-6 col-6">
+                <div class="card card-care p-3 border-0 shadow-sm text-center h-100">
+                    <span class="text-muted small fw-semibold d-block mb-1">Prediction Confidence</span>
+                    <div>
+                        <span class="badge {% if prediction.confidence == 'High' %}bg-primary-subtle text-primary{% elif prediction.confidence == 'Medium' %}bg-info-subtle text-info{% else %}bg-secondary-subtle text-secondary{% endif %} px-3 py-2">
+                            {{ prediction.confidence_display }}
+                        </span>
+                    </div>
+                    <span class="text-muted small mt-1 d-block">{{ prediction.historical_days_used }} days analyzed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Chart.js Visualization & Model Explanation Row -->
+        <div class="row g-4 mb-4">
+            <!-- Chart Column -->
+            <div class="col-lg-8">
+                <div class="card card-care p-4 border-0 shadow-sm h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0">
+                                <i class="bi bi-graph-up text-teal me-2" style="color: #0f766e;"></i>Historical Activity &amp; 7-Day Forecast
+                            </h5>
+                            <span class="text-muted small">Actual non-cancelled bookings vs projected upcoming volume</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-teal-subtle text-teal border" style="background: #ccfbf1; color: #0f766e;">Historical Actual</span>
+                            <span class="badge bg-purple-subtle text-purple border" style="background: #f3e8ff; color: #7c3aed;">Predicted</span>
+                        </div>
+                    </div>
+                    <div style="height: 320px; position: relative;">
+                        <canvas id="loadPredictionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Explanation & Methodology Column -->
+            <div class="col-lg-4">
+                <div class="card card-care p-4 border-0 shadow-sm h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <h5 class="fw-bold mb-3 text-dark">
+                            <i class="bi bi-cpu text-primary me-2"></i>Forecast Methodology
+                        </h5>
+                        <p class="text-secondary small mb-3">
+                            {{ prediction.explanation }}
+                        </p>
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <div class="text-dark small fw-bold mb-1">Explainable Factors:</div>
+                            <ul class="list-unstyled small text-muted mb-0 ps-1">
+                                <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i><strong>60%</strong> Weighted 7-Day Moving Average</li>
+                                <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i><strong>30%</strong> Day-of-Week Seasonal Patterns</li>
+                                <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i><strong>10%</strong> Recent Velocity Trend Slope</li>
+                            </ul>
+                        </div>
+                        <div class="small text-muted">
+                            <i class="bi bi-shield-check text-success me-1"></i>
+                            Cancelled appointments are strictly excluded from patient load calculations.
+                        </div>
+                    </div>
+                    <div class="pt-3 border-top mt-3 text-center">
+                        <span class="badge bg-light text-secondary border px-3 py-2">
+                            {{ prediction.historical_days_used }} Historical Days Evaluated
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Multi-Day 7-Day Forecast Table -->
+        <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-calendar3-range text-primary me-2"></i>7-Day Upcoming Load Forecast
+                    </h5>
+                    <span class="text-muted small">Daily volume projections for {{ hospital.name }}</span>
+                </div>
+                <span class="badge bg-primary-subtle text-primary">7-Day Planning Horizon</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Forecast Date</th>
+                            <th>Day of Week</th>
+                            <th>Predicted Load</th>
+                            <th>Operational Trend</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in prediction.forecast_7days %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-dark">{{ day.date_str }}</div>
+                                {% if loop.first %}
+                                    <span class="badge bg-success-subtle text-success" style="font-size: 0.7rem;">Tomorrow</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ day.day_name }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold fs-5 text-teal" style="color: #0f766e;">{{ day.predicted_load }}</span>
+                                <span class="text-muted small">patients</span>
+                            </td>
+                            <td>
+                                <span class="badge {% if day.trend_badge == 'Higher' %}bg-danger-subtle text-danger border border-danger-subtle{% elif day.trend_badge == 'Lower' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-success-subtle text-success border border-success-subtle{% endif %}">
+                                    {{ day.trend }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-secondary border">
+                                    {{ day.confidence_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. Specialization Breakdown -->
+        <div class="card card-care p-4 border-0 shadow-sm">
+            <h5 class="fw-bold mb-2">
+                <i class="bi bi-diagram-3 text-teal me-2" style="color: #0f766e;"></i>Department / Specialization Workload Distribution
+            </h5>
+            <p class="text-secondary small mb-3">
+                Expected distribution of upcoming patient appointments across practicing medical specialties.
+            </p>
+
+            {% if prediction.specialty_breakdown %}
+                <div class="row g-3">
+                    {% for spec in prediction.specialty_breakdown %}
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card p-3 border rounded-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="fw-bold text-dark">{{ spec.specialization }}</span>
+                                <span class="badge bg-primary-subtle text-primary">{{ spec.percentage }}%</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Predicted Tomorrow:</span>
+                                <span class="fw-bold fs-6 text-teal" style="color: #0f766e;">{{ spec.predicted_load }} patients</span>
+                            </div>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ spec.percentage }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-light border py-3 text-center mb-0">
+                    <span class="text-muted small">{{ prediction.specialty_message }}</span>
+                </div>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <!-- Low-Data Fallback Banner -->
+        <div class="card card-care p-5 border-0 shadow-sm text-center">
+            <div class="my-3">
+                <div class="badge bg-warning-subtle text-warning p-4 rounded-circle mb-3">
+                    <i class="bi bi-clock-history fs-1"></i>
+                </div>
+                <h3 class="fw-bold text-dark mb-2">Insufficient Historical Data</h3>
+                <p class="text-secondary small mb-4 mx-auto" style="max-width: 500px;">
+                    {{ prediction.message }}
+                    Care Connect requires at least 3 active historical days of appointment booking activity to generate reliable statistical load predictions.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{{ url_for('hospital.dashboard') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-speedometer2 me-1"></i> Return to Hospital Dashboard
+                    </a>
+                    <a href="{{ url_for('hospital.appointments') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-calendar-check me-1"></i> View Appointments Queue
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% if has_sufficient_data %}
+<!-- Chart.js Setup -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var ctx = document.getElementById('loadPredictionChart');
+    if (!ctx) return;
+
+    var histLabels = {{ chart_data.historical_labels|tojson }};
+    var histCounts = {{ chart_data.historical_counts|tojson }};
+    var foreLabels = {{ chart_data.forecast_labels|tojson }};
+    var foreCounts = {{ chart_data.forecast_counts|tojson }};
+
+    // Combine labels
+    var allLabels = histLabels.concat(foreLabels);
+
+    // Historical dataset (padded with nulls for forecast horizon)
+    var histData = histCounts.concat(new Array(foreLabels.length).fill(null));
+
+    // Forecast dataset (padded with nulls for historical past, bridged with last historical point)
+    var foreData = new Array(Math.max(0, histLabels.length - 1)).fill(null);
+    if (histCounts.length > 0) {
+        foreData.push(histCounts[histCounts.length - 1]); // bridge point
+    }
+    foreData = foreData.concat(foreCounts);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: allLabels,
+            datasets: [
+                {
+                    label: 'Historical Actual',
+                    data: histData,
+                    borderColor: '#0f766e',
+                    backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#0f766e'
+                },
+                {
+                    label: 'Predicted Forecast',
+                    data: foreData,
+                    borderColor: '#7c3aed',
+                    borderDash: [5, 5],
+                    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#7c3aed'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        font: { family: "'Plus Jakarta Sans', sans-serif" }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            var val = context.raw;
+                            if (val === null) return null;
+                            return context.dataset.label + ': ' + val + ' patients';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

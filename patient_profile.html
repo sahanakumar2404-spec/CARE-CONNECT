@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Care Connect Patient Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Patient Profile</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Left Column: Profile Summary Card -->
+        <div class="col-lg-4">
+            <div class="card card-care p-4 text-center shadow-sm">
+                <div class="mx-auto mb-3 stat-icon" style="background: #f3e8ff; color: #7c3aed; width: 80px; height: 80px; font-size: 2.5rem;">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <h4 class="fw-bold mb-1 text-dark">{{ patient.user.full_name }}</h4>
+                <p class="text-muted small mb-2"><i class="bi bi-envelope me-1"></i> {{ patient.user.email }}</p>
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <span class="badge badge-patient px-3 py-1">Patient</span>
+                    <span class="badge bg-danger-subtle text-danger border">Blood Group: {{ patient.blood_group or 'O+' }}</span>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="text-start small text-secondary">
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="fw-semibold">Phone:</span>
+                        <span>{{ patient.user.phone or 'Not provided' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="fw-semibold">Date of Birth:</span>
+                        <span>{{ patient.date_of_birth or 'Not specified' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="fw-semibold">Gender:</span>
+                        <span>{{ patient.gender or 'Not specified' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="fw-semibold">City:</span>
+                        <span>{{ patient.city or 'Not specified' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="fw-semibold">Emergency Contact:</span>
+                        <span class="text-danger fw-semibold">{{ patient.emergency_contact or 'None listed' }}</span>
+                    </div>
+                    <div class="py-1 mt-2">
+                        <span class="fw-semibold d-block">Residential Address:</span>
+                        <span>{{ patient.address or 'No address provided.' }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-light rounded-3 text-start small border">
+                    <div class="d-flex align-items-center gap-2 mb-1 text-primary fw-semibold">
+                        <i class="bi bi-shield-check fs-5"></i> Privacy Protected
+                    </div>
+                    <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                        Your health and contact data is encrypted and visible strictly to you and your attending physicians during confirmed appointments.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Edit Profile Form -->
+        <div class="col-lg-8">
+            <div class="card card-care p-4 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-pencil-square text-primary me-2"></i>Edit Patient Profile</h4>
+                        <p class="text-secondary small mb-0">Update your personal, medical, and emergency contact details.</p>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border">Patient PHI</span>
+                </div>
+
+                <form method="POST" action="{{ url_for('patient.profile') }}" class="needs-validation">
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-person me-2 text-primary"></i>Personal Identification</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label small fw-semibold">Full Legal Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" 
+                                value="{{ form_data.get('full_name', patient.user.full_name) if form_data else patient.user.full_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                value="{{ form_data.get('email', patient.user.email) if form_data else patient.user.email }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label small fw-semibold">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                value="{{ form_data.get('phone', patient.user.phone or '') if form_data else (patient.user.phone or '') }}" placeholder="+1 (555) 000-0000">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="date_of_birth" class="form-label small fw-semibold">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                                value="{{ form_data.get('date_of_birth', patient.date_of_birth|string if patient.date_of_birth else '') if form_data else (patient.date_of_birth|string if patient.date_of_birth else '') }}">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4"><i class="bi bi-heart-pulse me-2 text-danger"></i>Clinical & Vital Details</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="gender" class="form-label small fw-semibold">Gender</label>
+                            {% set current_gender = form_data.get('gender', patient.gender or 'Not Specified') if form_data else (patient.gender or 'Not Specified') %}
+                            <select class="form-select" id="gender" name="gender">
+                                <option value="Not Specified" {% if current_gender == 'Not Specified' %}selected{% endif %}>Not Specified</option>
+                                <option value="Male" {% if current_gender == 'Male' %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if current_gender == 'Female' %}selected{% endif %}>Female</option>
+                                <option value="Other" {% if current_gender == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="blood_group" class="form-label small fw-semibold">Blood Group</label>
+                            {% set current_bg = form_data.get('blood_group', patient.blood_group or 'O+') if form_data else (patient.blood_group or 'O+') %}
+                            <select class="form-select" id="blood_group" name="blood_group">
+                                {% for bg in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}
+                                    <option value="{{ bg }}" {% if current_bg == bg %}selected{% endif %}>{{ bg }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="emergency_contact" class="form-label small fw-semibold">Emergency Contact Phone</label>
+                            <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" 
+                                value="{{ form_data.get('emergency_contact', patient.emergency_contact or '') if form_data else (patient.emergency_contact or '') }}" placeholder="Name: (555) 999-9999">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4"><i class="bi bi-geo-alt me-2 text-success"></i>Address & Location</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="city" class="form-label small fw-semibold">City</label>
+                            <input type="text" class="form-control" id="city" name="city" 
+                                value="{{ form_data.get('city', patient.city or '') if form_data else (patient.city or '') }}" placeholder="e.g. New York">
+                        </div>
+                        <div class="col-md-8">
+                            <label for="address" class="form-label small fw-semibold">Residential Street Address</label>
+                            <input type="text" class="form-control" id="address" name="address" 
+                                value="{{ form_data.get('address', patient.address or '') if form_data else (patient.address or '') }}" placeholder="Street, Apt, Zip Code">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel & Return
+                        </a>
+                        <button type="submit" class="btn btn-care px-4">
+                            <i class="bi bi-check2-circle me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

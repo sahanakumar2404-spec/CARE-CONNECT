@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Facility Registration - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Role Switcher Nav -->
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <a href="{{ url_for('auth.register_patient') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                    <i class="bi bi-person me-1"></i> Patient Register
+                </a>
+                <a href="{{ url_for('auth.register_doctor') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                    <i class="bi bi-stethoscope me-1"></i> Doctor Join
+                </a>
+                <a href="{{ url_for('auth.register_hospital') }}" class="btn btn-info btn-sm px-3 rounded-pill text-white fw-semibold">
+                    <i class="bi bi-hospital me-1"></i> Hospital Register
+                </a>
+            </div>
+
+            <div class="card card-care shadow-lg p-4 p-md-5 border-0">
+                <div class="text-center mb-4">
+                    <div class="brand-badge mb-3 mx-auto" style="width: 52px; height: 52px; font-size: 1.6rem; background: linear-gradient(135deg, #0284c7 0%, #0f766e 100%);">
+                        <i class="bi bi-building-fill-add"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Register Hospital Facility</h3>
+                    <p class="text-muted small">Onboard your healthcare facility to coordinate doctors and manage capacity</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.register_hospital') }}">
+                    <!-- Facility Details -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-info-circle me-1"></i> Hospital Information
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label for="hospital_name" class="form-label fw-semibold small">Hospital Name *</label>
+                            <input type="text" class="form-control" id="hospital_name" name="hospital_name" value="{{ form_data.hospital_name if form_data else '' }}" placeholder="e.g. Saint Jude Memorial Hospital" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="registration_number" class="form-label fw-semibold small">License / Reg Number *</label>
+                            <input type="text" class="form-control" id="registration_number" name="registration_number" value="{{ form_data.registration_number if form_data else '' }}" placeholder="e.g. HOSP-NY-8901" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="hospital_type" class="form-label fw-semibold small">Hospital Facility Type *</label>
+                            <select class="form-select" id="hospital_type" name="hospital_type">
+                                <option value="Multispecialty Hospital" selected>Multispecialty Hospital</option>
+                                <option value="General Hospital">General Hospital</option>
+                                <option value="Specialty Clinic">Specialty Clinic</option>
+                                <option value="Research & Academic Hospital">Research & Academic Hospital</option>
+                                <option value="Trauma & Emergency Care Center">Trauma & Emergency Care Center</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="city" class="form-label fw-semibold small">City *</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ form_data.city if form_data else 'New York' }}" placeholder="e.g. New York" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="address" class="form-label fw-semibold small">Physical Address *</label>
+                        <input type="text" class="form-control" id="address" name="address" value="{{ form_data.address if form_data else '' }}" placeholder="e.g. 500 Park Avenue, Suite 100" required>
+                    </div>
+
+                    <!-- Administrator Credentials -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-shield-lock me-1"></i> Administrator Account
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label fw-semibold small">Admin Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ form_data.email if form_data else '' }}" placeholder="admin@hospital.org" required>
+                            <div class="form-text">This will be your official login identifier.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_phone" class="form-label fw-semibold small">Contact Number *</label>
+                            <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ form_data.contact_phone if form_data else '' }}" placeholder="+1 (212) 555-0100" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label fw-semibold small">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 characters" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label fw-semibold small">Confirm Password *</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-care w-100 py-2 mb-3">
+                        <i class="bi bi-check-circle-fill me-2"></i> Register Hospital & Open Dashboard
+                    </button>
+                </form>
+
+                <div class="text-center mt-2 pt-3 border-top">
+                    <p class="small text-muted mb-0">
+                        Already have a registered hospital account? <a href="{{ url_for('auth.login', role='hospital') }}" class="fw-semibold text-primary">Sign in here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

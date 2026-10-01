@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Facility Profile - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-md-11">
+            <!-- Breadcrumbs / Top Nav -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{{ url_for('hospital.dashboard') }}">Hospital Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Facility Profile</li>
+                    </ol>
+                </nav>
+                <a href="{{ url_for('hospital.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Profile Summary Card -->
+            <div class="card card-care shadow-sm p-4 mb-4 border-0">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom pb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-info-subtle text-info" style="width: 56px; height: 56px; font-size: 1.8rem;">
+                            <i class="bi bi-hospital"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary mb-1">{{ hospital.hospital_type }}</span>
+                            <h3 class="fw-bold mb-0 text-dark">{{ hospital.name }}</h3>
+                            <span class="text-muted small">License: <code>{{ hospital.registration_number }}</code></span>
+                        </div>
+                    </div>
+                    <div>
+                        {% if hospital.emergency_available %}
+                            <span class="badge bg-success-subtle text-success p-2"><i class="bi bi-check-circle me-1"></i>Emergency Active</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger p-2"><i class="bi bi-x-circle me-1"></i>Emergency Paused</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row g-3 small">
+                    <div class="col-md-4">
+                        <span class="text-muted d-block">Physical Address</span>
+                        <strong class="text-dark">{{ hospital.address }}, {{ hospital.city }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted d-block">Contact Email</span>
+                        <strong class="text-dark">{{ hospital.contact_email or "Not provided" }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted d-block">Contact Phone</span>
+                        <strong class="text-dark">{{ hospital.contact_phone or "Not provided" }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted d-block">Inpatient Beds</span>
+                        <strong class="text-teal" style="color: #0f766e;">{{ hospital.available_beds }} Available / {{ hospital.total_beds }} Total</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted d-block">Operational Status</span>
+                        <strong class="text-dark">{{ hospital.operational_status }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted d-block">Affiliated Doctors</span>
+                        <strong class="text-dark">{{ hospital.doctors.count() }} Specialists</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Profile Form Card -->
+            <div class="card card-care shadow-sm p-4 p-md-5 border-0">
+                <div class="d-flex align-items-center gap-2 mb-4 border-bottom pb-3">
+                    <i class="bi bi-pencil-square fs-4 text-primary"></i>
+                    <div>
+                        <h4 class="fw-bold mb-0">Edit Hospital Facility Information</h4>
+                        <p class="text-muted small mb-0">Update your hospital contact details, bed capacity, and daily notices</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('hospital.profile') }}">
+                    <!-- Facility Details -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-building me-1"></i> Basic Identification
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="name" class="form-label fw-semibold small">Hospital Official Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ hospital.name }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Registration Number</label>
+                            <input type="text" class="form-control bg-light" value="{{ hospital.registration_number }}" disabled>
+                            <div class="form-text">State license numbers are immutable.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="hospital_type" class="form-label fw-semibold small">Hospital Classification *</label>
+                            <select class="form-select" id="hospital_type" name="hospital_type">
+                                <option value="Multispecialty Hospital" {% if hospital.hospital_type == 'Multispecialty Hospital' %}selected{% endif %}>Multispecialty Hospital</option>
+                                <option value="Multispecialty Teaching & Research Hospital" {% if hospital.hospital_type == 'Multispecialty Teaching & Research Hospital' %}selected{% endif %}>Multispecialty Teaching & Research Hospital</option>
+                                <option value="General Hospital" {% if hospital.hospital_type == 'General Hospital' %}selected{% endif %}>General Hospital</option>
+                                <option value="Specialty Clinic" {% if hospital.hospital_type == 'Specialty Clinic' %}selected{% endif %}>Specialty Clinic</option>
+                                <option value="Trauma & Emergency Care Center" {% if hospital.hospital_type == 'Trauma & Emergency Care Center' %}selected{% endif %}>Trauma & Emergency Care Center</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="city" class="form-label fw-semibold small">City *</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ hospital.city }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="address" class="form-label fw-semibold small">Street Address *</label>
+                        <input type="text" class="form-control" id="address" name="address" value="{{ hospital.address }}" required>
+                    </div>
+
+                    <!-- Contact Details -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-telephone me-1"></i> Contact Information
+                    </h6>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="contact_email" class="form-label fw-semibold small">Official Contact Email *</label>
+                            <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ hospital.contact_email or '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_phone" class="form-label fw-semibold small">Hotline / Telephone *</label>
+                            <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ hospital.contact_phone or '' }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Capacity & Operations -->
+                    <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">
+                        <i class="bi bi-activity me-1"></i> Capacity & Operations
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="total_beds" class="form-label fw-semibold small">Total Beds Capacity *</label>
+                            <input type="number" class="form-control" id="total_beds" name="total_beds" value="{{ hospital.total_beds }}" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="available_beds" class="form-label fw-semibold small">Available Inpatient Beds *</label>
+                            <input type="number" class="form-control" id="available_beds" name="available_beds" value="{{ hospital.available_beds }}" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="operational_status" class="form-label fw-semibold small">Operational Status</label>
+                            <select class="form-select" id="operational_status" name="operational_status">
+                                <option value="Normal Operations" {% if hospital.operational_status == 'Normal Operations' %}selected{% endif %}>Normal Operations</option>
+                                <option value="High Capacity" {% if hospital.operational_status == 'High Capacity' %}selected{% endif %}>High Capacity</option>
+                                <option value="Emergency Advisory" {% if hospital.operational_status == 'Emergency Advisory' %}selected{% endif %}>Emergency Advisory</option>
+                                <option value="Limited Services" {% if hospital.operational_status == 'Limited Services' %}selected{% endif %}>Limited Services</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="emergency_available" name="emergency_available" {% if hospital.emergency_available %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small" for="emergency_available">Emergency Ward Active (24/7 Intake)</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="daily_notice" class="form-label fw-semibold small">Hospital Bulletin / Daily Staff Notice</label>
+                        <textarea class="form-control" id="daily_notice" name="daily_notice" rows="3" placeholder="Important notices for hospital staff and visiting patients...">{{ hospital.daily_notice or '' }}</textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{{ url_for('hospital.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-care">
+                            <i class="bi bi-check-circle-fill me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

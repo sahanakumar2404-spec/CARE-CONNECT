@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Availability & Schedule - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge badge-doctor px-3 py-1">Physician Schedule Hub</span>
+                    {% if doctor.is_available %}
+                        <span class="badge bg-success-subtle text-success"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Currently Available</span>
+                    {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Away / Off Duty</span>
+                    {% endif %}
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Availability & Consultation Hours</h2>
+                <p class="text-secondary small mb-0">
+                    Dr. {{ doctor.user.full_name }} &bull; 
+                    <span class="text-primary fw-semibold">{{ doctor.specialization }}</span> &bull; 
+                    <i class="bi bi-building ms-1"></i> {{ doctor.hospital.name if doctor.hospital else "Affiliated Hospital" }}
+                </p>
+            </div>
+            <div>
+                <!-- Fast Availability Toggle Form -->
+                <form method="POST" action="{{ url_for('doctor.toggle_availability') }}">
+                    <button type="submit" class="btn btn-sm {% if doctor.is_available %}btn-outline-danger{% else %}btn-success{% endif %}">
+                        <i class="bi bi-power me-1"></i>
+                        {% if doctor.is_available %}Switch to Off-Duty{% else %}Switch to Available{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Pills -->
+    <div class="mb-4">
+        <ul class="nav nav-pills gap-2 bg-white p-2 rounded-3 border shadow-sm flex-wrap small">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.dashboard') }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.profile') }}"><i class="bi bi-person-badge me-1"></i> My Profile</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('doctor.availability') }}"><i class="bi bi-clock-history me-1"></i> Availability & Schedule</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.appointments') }}"><i class="bi bi-calendar-check me-1"></i> Consultations Queue</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.patients') }}"><i class="bi bi-people me-1"></i> Patient History</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.hospital_info') }}"><i class="bi bi-hospital me-1"></i> Affiliated Facility</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="row g-4">
+        <!-- Schedule Configuration Form -->
+        <div class="col-lg-7">
+            <div class="card card-care p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-calendar-week text-primary me-2"></i>Configure Consultation Schedule
+                    </h5>
+                    <span class="badge bg-primary-subtle text-primary">Live Schedule</span>
+                </div>
+                <p class="text-secondary small mb-4">Set your regular on-duty days, consultation working hours, and overall availability status.</p>
+
+                <form method="POST" action="{{ url_for('doctor.availability') }}">
+                    <!-- On-Duty Status Switch -->
+                    <div class="p-3 bg-light rounded-3 mb-4">
+                        <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-0">
+                            <div>
+                                <label class="form-check-label fw-bold text-dark d-block" for="is_available">Doctor Availability Status</label>
+                                <span class="small text-muted">When toggled OFF, appointments cannot be scheduled and your profile will display as Away.</span>
+                            </div>
+                            <input class="form-check-input ms-3 fs-4" type="checkbox" role="switch" id="is_available" name="is_available" value="true" {% if doctor.is_available %}checked{% endif %}>
+                        </div>
+                    </div>
+
+                    <!-- Working Days -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold d-block mb-2">
+                            <i class="bi bi-calendar3 me-1 text-primary"></i> Select Working Days
+                        </label>
+                        <div class="row g-2">
+                            {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                            <div class="col-sm-4 col-6">
+                                <div class="form-check p-2 border rounded-3 bg-white">
+                                    <input class="form-check-input ms-1" type="checkbox" name="days" value="{{ day }}" id="day_{{ day }}"
+                                        {% if day|lower in doctor.available_days|lower or (doctor.available_days == "Monday - Friday" and day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) or (doctor.available_days == "Monday - Saturday" and day != 'Sunday') %}checked{% endif %}>
+                                    <label class="form-check-label small fw-semibold ms-2" for="day_{{ day }}">
+                                        {{ day }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-2">
+                            <label for="available_days" class="form-label text-muted small">Custom Days Text (Optional)</label>
+                            <input type="text" class="form-control form-control-sm" id="available_days" name="available_days" value="{{ doctor.available_days }}" placeholder="e.g. Monday - Friday, Alternating Saturdays">
+                        </div>
+                    </div>
+
+                    <!-- Consultation Hours -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold d-block mb-2">
+                            <i class="bi bi-clock me-1 text-success"></i> Consultation Timings
+                        </label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="start_time" class="form-label small text-muted">Shift Start Time</label>
+                                <input type="text" class="form-control form-control-sm" id="start_time" name="start_time" value="{{ doctor.start_time }}" placeholder="09:00 AM">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_time" class="form-label small text-muted">Shift End Time</label>
+                                <input type="text" class="form-control form-control-sm" id="end_time" name="end_time" value="{{ doctor.end_time }}" placeholder="05:00 PM">
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label for="available_time" class="form-label text-muted small">Combined Time String (Optional)</label>
+                            <input type="text" class="form-control form-control-sm" id="available_time" name="available_time" value="{{ doctor.available_time }}" placeholder="09:00 AM - 05:00 PM">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-sm btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-sm btn-care">
+                            <i class="bi bi-save me-1"></i> Save Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Schedule Display Card -->
+        <div class="col-lg-5">
+            <div class="card card-care p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="bi bi-calendar-check text-success me-2"></i>Active Schedule Summary</h5>
+                <p class="text-secondary small mb-3">Live visualization of your current availability parameters.</p>
+
+                <div class="p-3 rounded-3 mb-3 {% if doctor.is_available %}bg-success-subtle border border-success border-opacity-25{% else %}bg-secondary-subtle border border-secondary border-opacity-25{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="small fw-semibold text-muted">Duty Status:</span>
+                        {% if doctor.is_available %}
+                            <span class="badge bg-success px-3 py-1"><i class="bi bi-check-circle me-1"></i>Available for Consultations</span>
+                        {% else %}
+                            <span class="badge bg-secondary px-3 py-1"><i class="bi bi-slash-circle me-1"></i>Off-Duty / Unavailable</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <ul class="list-group list-group-flush small mb-4">
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted"><i class="bi bi-calendar-range me-1 text-primary"></i> Working Days:</span>
+                        <span class="fw-semibold text-dark">{{ doctor.available_days }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted"><i class="bi bi-clock me-1 text-info"></i> Daily Hours:</span>
+                        <span class="fw-semibold text-dark">{{ doctor.available_time }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted"><i class="bi bi-door-open me-1 text-warning"></i> Assigned Room:</span>
+                        <span class="fw-semibold text-dark">{{ doctor.room_number }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted"><i class="bi bi-hospital me-1 text-danger"></i> Facility:</span>
+                        <span class="fw-semibold text-dark">{{ doctor.hospital.name if doctor.hospital else "Not Assigned" }}</span>
+                    </li>
+                </ul>
+
+                <div class="p-3 bg-light rounded-3 text-secondary small">
+                    <h6 class="fw-bold text-dark small mb-1"><i class="bi bi-info-circle me-1 text-primary"></i> Schedule Synchronization</h6>
+                    <p class="mb-0">
+                        Changes to your working days or hours update immediately for your affiliated hospital and patient lookup directories.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

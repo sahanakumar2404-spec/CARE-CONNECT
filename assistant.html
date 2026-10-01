@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Assistant - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            {% if user.is_patient() %}
+                <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            {% elif user.is_doctor() %}
+                <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            {% elif user.is_hospital() %}
+                <li class="breadcrumb-item"><a href="{{ url_for('hospital.dashboard') }}" class="text-decoration-none"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">Care Connect AI Assistant</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background: #e0f2fe; color: #0284c7; width: 60px; height: 60px; font-size: 1.8rem;">
+                    <i class="bi bi-chat-dots-fill"></i>
+                </div>
+                <div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <span class="badge bg-primary-subtle text-primary border">Phase 12 Platform Assistant</span>
+                        {% if user.is_patient() %}
+                            <span class="badge badge-patient">Patient Role</span>
+                        {% elif user.is_doctor() %}
+                            <span class="badge badge-doctor">Doctor Role</span>
+                        {% elif user.is_hospital() %}
+                            <span class="badge badge-hospital">Hospital Admin Role</span>
+                        {% endif %}
+                        <span class="badge bg-success-subtle text-success border"><i class="bi bi-database-check me-1"></i> Live DB Connected</span>
+                    </div>
+                    <h2 class="fw-bold mb-1 text-dark">Care Connect AI Assistant</h2>
+                    <p class="text-secondary small mb-0">
+                        Ask about your appointments, registered hospitals, available specialists, clinic hours, and platform features.
+                    </p>
+                </div>
+            </div>
+            <div>
+                <button type="button" id="clearChatBtn" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Clear Chat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Non-Diagnostic Notice -->
+    <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-center gap-2">
+        <i class="bi bi-shield-check text-primary fs-5"></i>
+        <div class="small text-secondary">
+            <strong class="text-dark">Operational &amp; Navigation Notice:</strong>
+            The Care Connect Assistant provides platform navigation and database retrieval only. It does not diagnose medical conditions, interpret acute symptoms, or prescribe medication.
+        </div>
+    </div>
+
+    <!-- Chat Card Container -->
+    <div class="card card-care shadow-sm border overflow-hidden">
+        <!-- Chat Header -->
+        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success rounded-circle p-1"> </span>
+                <span class="small fw-semibold text-dark">Care Connect Online Assistant</span>
+            </div>
+            <span class="small text-muted">Signed in as <strong>{{ user.full_name }}</strong> ({{ user.email }})</span>
+        </div>
+
+        <!-- Chat Message History -->
+        <div id="chatMessages" class="p-4" style="height: 480px; overflow-y: auto; background-color: #f8fafc;">
+            <!-- Initial Greeting from Assistant -->
+            <div class="d-flex gap-3 mb-4">
+                <div class="stat-icon bg-primary text-white flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="p-3 rounded-4 bg-white shadow-sm border" style="max-width: 80%;">
+                    <div class="small text-muted mb-1 fw-semibold">Care Connect Assistant</div>
+                    <p class="mb-0 text-dark small" style="white-space: pre-line;">
+                        Hello {{ user.full_name }}! I am your Care Connect platform assistant.
+                        {% if user.is_patient() %}
+                            I can help you check your appointments, look up registered hospitals and specialist doctors, explain booking procedures, or guide you to our AI Specialist and Smart Appointment recommenders.
+                        {% elif user.is_doctor() %}
+                            I can help you review your consultation queue for today, check your upcoming schedule, verify working hours, and review your affiliated hospital details.
+                        {% elif user.is_hospital() %}
+                            I can help you check today's appointment volume, list on-duty doctors, review hospital consultation statistics, and summarize your Phase 10 AI Patient Load Prediction forecast.
+                        {% endif %}
+                        How may I assist you today?
+                    </p>
+                </div>
+            </div>
+
+            {% if initial_query and initial_response %}
+                <!-- Initial User Message if Form Post -->
+                <div class="d-flex justify-content-end gap-3 mb-4">
+                    <div class="p-3 rounded-4 bg-primary text-white shadow-sm" style="max-width: 80%;">
+                        <p class="mb-0 small">{{ initial_query }}</p>
+                    </div>
+                    <div class="stat-icon bg-secondary text-white flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                </div>
+
+                <!-- Initial Assistant Response -->
+                <div class="d-flex gap-3 mb-4">
+                    <div class="stat-icon bg-primary text-white flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="p-3 rounded-4 bg-white shadow-sm border" style="max-width: 80%;">
+                        <div class="small text-muted mb-1 fw-semibold">Care Connect Assistant</div>
+                        <p class="mb-0 text-dark small" style="white-space: pre-line;">{{ initial_response }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Suggested Question Pills -->
+        <div class="px-4 py-2 bg-white border-top border-bottom">
+            <div class="small text-muted mb-2 fw-semibold"><i class="bi bi-lightbulb me-1 text-warning"></i> Suggested questions:</div>
+            <div class="d-flex flex-wrap gap-2">
+                {% for question in suggested_questions %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill suggestion-btn" data-question="{{ question }}">
+                        {{ question }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Chat Input Footer -->
+        <div class="p-3 bg-white">
+            <form id="chatForm" class="d-flex gap-2">
+                <input type="text" id="chatInput" class="form-control" 
+                       placeholder="Type your question about Care Connect (e.g., 'What is my next appointment?')..." 
+                       autocomplete="off" required>
+                <button type="submit" id="sendBtn" class="btn btn-care px-4 fw-semibold flex-shrink-0">
+                    <i class="bi bi-send-fill me-1"></i> Send
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Chat Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+    const suggestionButtons = document.querySelectorAll('.suggestion-btn');
+
+    // Scroll chat area to bottom
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    scrollToBottom();
+
+    // Escape HTML to prevent injection
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Format markdown-style bold and bullet points cleanly
+    function formatMessageText(text) {
+        let escaped = escapeHtml(text);
+        // Replace **bold** with <strong>bold</strong>
+        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Replace bullet points • with styled bullets
+        escaped = escaped.replace(/• (.*)/g, '<li class="mb-1">$1</li>');
+        escaped = escaped.replace(/(<li.*<\/li>)/s, '<ul class="ps-3 mb-2">$1</ul>');
+        // Replace newlines with <br>
+        escaped = escaped.replace(/\n/g, '<br>');
+        return escaped;
+    }
+
+    // Append user message
+    function appendUserMessage(msg) {
+        const html = `
+            <div class="d-flex justify-content-end gap-3 mb-4 user-msg-container">
+                <div class="p-3 rounded-4 bg-primary text-white shadow-sm" style="max-width: 80%;">
+                    <p class="mb-0 small">${escapeHtml(msg)}</p>
+                </div>
+                <div class="stat-icon bg-secondary text-white flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+            </div>`;
+        chatMessages.insertAdjacentHTML('beforeend', html);
+        scrollToBottom();
+    }
+
+    // Append assistant message
+    function appendAssistantMessage(resp, status) {
+        let borderClass = 'border';
+        let badge = '';
+
+        if (status === 'safety_boundary') {
+            borderClass = 'border border-warning bg-warning-subtle';
+            badge = '<span class="badge bg-warning text-dark ms-2">Safety Notice</span>';
+        } else if (status === 'unauthorized') {
+            borderClass = 'border border-danger bg-danger-subtle';
+            badge = '<span class="badge bg-danger text-white ms-2">Access Denied</span>';
+        }
+
+        const formattedBody = formatMessageText(resp);
+
+        const html = `
+            <div class="d-flex gap-3 mb-4 assistant-msg-container">
+                <div class="stat-icon bg-primary text-white flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="p-3 rounded-4 bg-white shadow-sm ${borderClass}" style="max-width: 80%;">
+                    <div class="small text-muted mb-1 fw-semibold">
+                        Care Connect Assistant ${badge}
+                    </div>
+                    <div class="mb-0 text-dark small">${formattedBody}</div>
+                </div>
+            </div>`;
+        chatMessages.insertAdjacentHTML('beforeend', html);
+        scrollToBottom();
+    }
+
+    // Append typing indicator
+    function showTypingIndicator() {
+        const id = 'typingIndicator';
+        const html = `
+            <div id="${id}" class="d-flex gap-3 mb-4">
+                <div class="stat-icon bg-primary text-white flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.2rem;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="p-3 rounded-4 bg-white shadow-sm border d-flex align-items-center gap-2">
+                    <div class="spinner-grow spinner-grow-sm text-primary" role="status"></div>
+                    <span class="small text-muted">Retrieving Care Connect records...</span>
+                </div>
+            </div>`;
+        chatMessages.insertAdjacentHTML('beforeend', html);
+        scrollToBottom();
+        return id;
+    }
+
+    function removeTypingIndicator() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+    }
+
+    // Send user message handler
+    async function sendMessage(msgText) {
+        const text = (msgText || chatInput.value || '').trim();
+        if (!text) return;
+
+        appendUserMessage(text);
+        chatInput.value = '';
+        chatInput.focus();
+
+        showTypingIndicator();
+        sendBtn.disabled = true;
+
+        try {
+            const res = await fetch('/assistant/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await res.json();
+            removeTypingIndicator();
+            sendBtn.disabled = false;
+
+            if (data && data.response) {
+                appendAssistantMessage(data.response, data.status);
+            } else {
+                appendAssistantMessage("I'm sorry, I could not process your request at this time.", "error");
+            }
+        } catch (err) {
+            removeTypingIndicator();
+            sendBtn.disabled = false;
+            appendAssistantMessage("A network or server error occurred. Please try again.", "error");
+        }
+    }
+
+    // Form submit listener
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendMessage();
+    });
+
+    // Suggested question buttons listener
+    suggestionButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const q = this.getAttribute('data-question');
+            sendMessage(q);
+        });
+    });
+
+    // Clear chat button listener
+    clearChatBtn.addEventListener('click', function() {
+        // Keep only first greeting
+        const firstGreeting = chatMessages.firstElementChild;
+        chatMessages.innerHTML = '';
+        if (firstGreeting) {
+            chatMessages.appendChild(firstGreeting);
+        }
+    });
+});
+</script>
+{% endblock %}

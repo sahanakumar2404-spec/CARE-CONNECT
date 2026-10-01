@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header & Breadcrumb -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">Home</a></li>
+                    {% if current_user.is_patient() %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none">Patient Dashboard</a></li>
+                    {% elif current_user.is_doctor() %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}" class="text-decoration-none">Doctor Dashboard</a></li>
+                    {% elif current_user.is_hospital() %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('hospital.dashboard') }}" class="text-decoration-none">Hospital Dashboard</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active" aria-current="page">Notifications</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-bell text-primary me-2" aria-hidden="true"></i>Notification Center
+            </h2>
+            <p class="text-muted small mb-0">Stay informed about your appointments, status updates, and timely reminders</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if total_unread > 0 %}
+                <form method="POST" action="{{ url_for('notification.mark_all_notifications_read') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="markAllReadBtn">
+                        <i class="bi bi-check2-all me-1" aria-hidden="true"></i> Mark All as Read
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Metrics Badges -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Total Notifications</span>
+                <h3 class="fw-bold text-dark mb-0">{{ total_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Unread</span>
+                <h3 class="fw-bold text-danger mb-0">{{ total_unread }}</h3>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Read / Archived</span>
+                <h3 class="fw-bold text-success mb-0">{{ total_count - total_unread }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <ul class="nav nav-pills" id="notificationFilterTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link rounded-pill px-3 py-1 me-2 {% if filter_type != 'unread' %}active bg-primary{% else %}text-muted{% endif %}" 
+                   href="{{ url_for('notification.notifications_list', filter='all') }}"
+                   role="tab"
+                   aria-selected="{{ 'true' if filter_type != 'unread' else 'false' }}">
+                    <i class="bi bi-list-ul me-1" aria-hidden="true"></i> All ({{ total_count }})
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link rounded-pill px-3 py-1 {% if filter_type == 'unread' %}active bg-danger{% else %}text-muted{% endif %}" 
+                   href="{{ url_for('notification.notifications_list', filter='unread') }}"
+                   role="tab"
+                   aria-selected="{{ 'true' if filter_type == 'unread' else 'false' }}">
+                    <i class="bi bi-bell-fill me-1" aria-hidden="true"></i> Unread ({{ total_unread }})
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Notification List -->
+    {% if notifications and notifications|length > 0 %}
+        <div class="notification-list d-flex flex-column gap-3" id="notificationsContainer">
+            {% for notif in notifications %}
+                <div class="card card-care border-0 shadow-sm p-3 notification-card {% if not notif.is_read %}notification-unread{% else %}notification-read opacity-75{% endif %}" 
+                     id="notif-card-{{ notif.id }}">
+                    <div class="d-flex flex-wrap flex-md-nowrap align-items-start gap-3">
+                        <!-- Icon Box -->
+                        <div class="notification-icon-wrapper rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 48px; height: 48px; {% if notif.notification_type == 'APPOINTMENT_BOOKED' %}background: rgba(16, 185, 129, 0.15); color: #059669;{% elif notif.notification_type == 'APPOINTMENT_CANCELLED' %}background: rgba(239, 68, 68, 0.15); color: #dc2626;{% elif notif.notification_type == 'UPCOMING_APPOINTMENT' %}background: rgba(245, 158, 11, 0.15); color: #d97706;{% else %}background: rgba(14, 165, 233, 0.15); color: #0284c7;{% endif %}">
+                            {% if notif.notification_type == 'APPOINTMENT_BOOKED' %}
+                                <i class="bi bi-calendar-check fs-4" aria-hidden="true"></i>
+                            {% elif notif.notification_type == 'APPOINTMENT_CANCELLED' %}
+                                <i class="bi bi-calendar-x fs-4" aria-hidden="true"></i>
+                            {% elif notif.notification_type == 'UPCOMING_APPOINTMENT' %}
+                                <i class="bi bi-clock-history fs-4" aria-hidden="true"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-repeat fs-4" aria-hidden="true"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Content Body -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                <h5 class="fw-bold mb-0 text-dark {% if not notif.is_read %}fw-bolder{% endif %}">
+                                    {{ notif.title }}
+                                    {% if not notif.is_read %}
+                                        <span class="badge bg-danger rounded-pill ms-1" style="font-size: 0.65rem;">New</span>
+                                    {% endif %}
+                                </h5>
+                                <div class="text-muted small">
+                                    <i class="bi bi-clock me-1" aria-hidden="true"></i>{{ notif.created_at.strftime('%b %d, %Y - %I:%M %p') }}
+                                </div>
+                            </div>
+
+                            <p class="text-secondary mb-2" style="font-size: 0.95rem;">
+                                {{ notif.message }}
+                            </p>
+
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if notif.notification_type == 'APPOINTMENT_BOOKED' %}
+                                        <span class="badge badge-status-confirmed"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>Booked</span>
+                                    {% elif notif.notification_type == 'APPOINTMENT_CANCELLED' %}
+                                        <span class="badge badge-status-cancelled"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Cancelled</span>
+                                    {% elif notif.notification_type == 'UPCOMING_APPOINTMENT' %}
+                                        <span class="badge badge-ai-feature"><i class="bi bi-bell me-1" aria-hidden="true"></i>Reminder</span>
+                                    {% elif notif.notification_type == 'APPOINTMENT_STATUS_UPDATED' %}
+                                        <span class="badge badge-status-completed"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Status Update</span>
+                                    {% endif %}
+
+                                    {% if notif.related_appointment_id %}
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="bi bi-hash me-1" aria-hidden="true"></i>Appt #{{ notif.related_appointment_id }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div>
+                                    {% if not notif.is_read %}
+                                        <form method="POST" action="{{ url_for('notification.mark_notification_read', notification_id=notif.id) }}" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3" aria-label="Mark notification as read">
+                                                <i class="bi bi-check2 me-1" aria-hidden="true"></i> Mark as Read
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted small">
+                                            <i class="bi bi-check2-all text-success me-1" aria-hidden="true"></i> Read
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="card card-care border-0 shadow-sm p-5 text-center my-4" id="emptyNotificationsState">
+            <div class="mb-3">
+                <i class="bi bi-bell-slash text-muted" style="font-size: 3.5rem;" aria-hidden="true"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-2">No Notifications Found</h4>
+            <p class="text-muted mb-4" style="max-width: 500px; margin: 0 auto;">
+                {% if filter_type == 'unread' %}
+                    You are all caught up! You have no unread notifications at this time.
+                {% else %}
+                    You do not have any notifications yet. When you book appointments, receive schedule updates, or have upcoming consultations, notifications will appear here.
+                {% endif %}
+            </p>
+            <div>
+                {% if filter_type == 'unread' %}
+                    <a href="{{ url_for('notification.notifications_list', filter='all') }}" class="btn btn-outline-primary rounded-pill px-4">
+                        <i class="bi bi-list-ul me-1" aria-hidden="true"></i> View All Notifications
+                    </a>
+                {% else %}
+                    {% if current_user.is_patient() %}
+                        <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-care rounded-pill px-4">
+                            <i class="bi bi-calendar-plus me-1" aria-hidden="true"></i> Book an Appointment
+                        </a>
+                    {% elif current_user.is_doctor() %}
+                        <a href="{{ url_for('doctor.appointments') }}" class="btn btn-care rounded-pill px-4">
+                            <i class="bi bi-calendar-check me-1" aria-hidden="true"></i> View Appointment Queue
+                        </a>
+                    {% elif current_user.is_hospital() %}
+                        <a href="{{ url_for('hospital.appointments') }}" class="btn btn-care rounded-pill px-4">
+                            <i class="bi bi-calendar-event me-1" aria-hidden="true"></i> View Hospital Appointments
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

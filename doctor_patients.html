@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient History - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge badge-doctor px-3 py-1">Clinical Patient Directory</span>
+                    <span class="badge bg-purple-subtle text-purple" style="background: #f3e8ff; color: #7c3aed;">
+                        {{ patient_records|length }} Associated Patients
+                    </span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Patient Appointment History</h2>
+                <p class="text-secondary small mb-0">
+                    Dr. {{ doctor.user.full_name }} &bull;
+                    <span class="text-primary fw-semibold">{{ doctor.specialization }}</span> &bull; 
+                    <i class="bi bi-building ms-1"></i> {{ doctor.hospital.name if doctor.hospital else "Affiliated Hospital" }}
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </a>
+                <a href="{{ url_for('doctor.appointments') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-calendar-check me-1"></i> Consultations Queue
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Pills -->
+    <div class="mb-4">
+        <ul class="nav nav-pills gap-2 bg-white p-2 rounded-3 border shadow-sm flex-wrap small">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.dashboard') }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.profile') }}"><i class="bi bi-person-badge me-1"></i> My Profile</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.availability') }}"><i class="bi bi-clock me-1"></i> Availability & Schedule</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.appointments') }}"><i class="bi bi-calendar-check me-1"></i> Consultations Queue</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('doctor.patients') }}"><i class="bi bi-people-fill me-1"></i> Patient History ({{ patient_records|length }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.hospital_info') }}"><i class="bi bi-hospital me-1"></i> Affiliated Facility</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Patient Directory Table Card -->
+    <div class="card card-care p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="bi bi-person-lines-fill text-primary me-2"></i>Treated & Scheduled Patients</h5>
+                <p class="text-secondary small mb-0">Patients who have consultation records booked with Dr. {{ doctor.user.full_name }}</p>
+            </div>
+            <span class="badge bg-light text-dark border">{{ patient_records|length }} Unique Patients</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>Patient Name</th>
+                        <th>Contact Phone / Email</th>
+                        <th>Date of Birth</th>
+                        <th>Gender</th>
+                        <th>Blood Group</th>
+                        <th>Total Consultations</th>
+                        <th>Last Consultation</th>
+                        <th>Emergency Contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in patient_records %}
+                    {% set p = rec.patient %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="stat-icon bg-purple-subtle text-purple" style="width: 38px; height: 38px; font-size: 1.1rem; background: #f3e8ff; color: #7c3aed;">
+                                    <i class="bi bi-person-heart"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ p.user.full_name if p.user else "Patient #" ~ p.id }}</div>
+                                    <span class="text-muted small">City: {{ p.city or "Not Listed" }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small text-dark"><i class="bi bi-telephone me-1 text-success"></i>{{ p.user.phone or "N/A" }}</div>
+                            <div class="small text-muted"><i class="bi bi-envelope me-1 text-primary"></i>{{ p.user.email if p.user else "N/A" }}</div>
+                        </td>
+                        <td>
+                            <span class="small text-dark">{{ p.date_of_birth or "Not Specified" }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ p.gender }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-danger-subtle text-danger">{{ p.blood_group }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary px-3 py-1">{{ rec.total_visits }} Visits</span>
+                        </td>
+                        <td>
+                            {% if rec.last_visit %}
+                                <div class="small fw-semibold text-dark">{{ rec.last_visit.appointment_date }}</div>
+                                <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">{{ rec.last_visit.time_slot }}</span>
+                            {% else %}
+                                <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="small text-muted">{{ p.emergency_contact or "None on file" }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="bi bi-people fs-1 text-secondary d-block mb-2"></i>
+                            <h6 class="fw-semibold text-dark">No patient consultation records found.</h6>
+                            <p class="small text-muted mb-0">Patients who book appointments with you will automatically appear in this registry.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

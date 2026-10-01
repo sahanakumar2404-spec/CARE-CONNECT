@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}My Appointments - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header & Breadcrumb -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}" class="text-decoration-none">Patient Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Appointments</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-calendar-check text-primary me-2"></i>My Appointment History
+            </h2>
+            <p class="text-muted small mb-0">Track, manage, download passes, and verify your clinical consultations</p>
+        </div>
+        <div>
+            <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-care">
+                <i class="bi bi-calendar-plus me-1"></i> Book New Appointment
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Badges -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Today</span>
+                <h3 class="fw-bold text-teal mb-0" style="color: #0f766e;">{{ today_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Upcoming</span>
+                <h3 class="fw-bold text-primary mb-0">{{ upcoming_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Completed</span>
+                <h3 class="fw-bold text-secondary mb-0">{{ completed_count }}</h3>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-care p-3 border-0 shadow-sm text-center">
+                <span class="text-muted small fw-semibold d-block">Cancelled</span>
+                <h3 class="fw-bold text-danger mb-0">{{ cancelled_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="card card-care p-3 border-0 shadow-sm mb-4">
+        <form method="GET" action="{{ url_for('patient.appointments') }}" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0" placeholder="Search by hospital, doctor, specialty, or tracking #..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="today" {% if status_filter == 'today' %}selected{% endif %}>Today's Appointments</option>
+                    <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>Upcoming Appointments</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                {% if search_query or status_filter %}
+                    <a href="{{ url_for('patient.appointments') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Organized Sections: Tabs Navigation -->
+    <ul class="nav nav-pills mb-4 gap-2" id="apptTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-pill px-3 py-2 fw-semibold" id="upcoming-tab" data-bs-toggle="pill" data-bs-target="#upcoming-pane" type="button" role="tab">
+                <i class="bi bi-clock-history me-1"></i> Upcoming ({{ upcoming_count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3 py-2 fw-semibold" id="today-tab" data-bs-toggle="pill" data-bs-target="#today-pane" type="button" role="tab">
+                <i class="bi bi-calendar-event me-1"></i> Today ({{ today_count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3 py-2 fw-semibold" id="completed-tab" data-bs-toggle="pill" data-bs-target="#completed-pane" type="button" role="tab">
+                <i class="bi bi-check-circle me-1"></i> Completed ({{ completed_count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3 py-2 fw-semibold" id="cancelled-tab" data-bs-toggle="pill" data-bs-target="#cancelled-pane" type="button" role="tab">
+                <i class="bi bi-x-octagon me-1"></i> Cancelled ({{ cancelled_count }})
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content Panes -->
+    <div class="tab-content" id="apptTabContent">
+        <!-- 1. Upcoming Appointments -->
+        <div class="tab-pane fade show active" id="upcoming-pane" role="tabpanel">
+            {% with appt_list=upcoming_appointments, section_name="Upcoming Appointments", empty_msg="No upcoming scheduled appointments found." %}
+                {% include 'dashboards/partials/patient_appointment_table.html' %}
+            {% endwith %}
+        </div>
+
+        <!-- 2. Today's Appointments -->
+        <div class="tab-pane fade" id="today-pane" role="tabpanel">
+            {% with appt_list=today_appointments, section_name="Today's Appointments", empty_msg="No consultations scheduled for today." %}
+                {% include 'dashboards/partials/patient_appointment_table.html' %}
+            {% endwith %}
+        </div>
+
+        <!-- 3. Completed Appointments -->
+        <div class="tab-pane fade" id="completed-pane" role="tabpanel">
+            {% with appt_list=completed_appointments, section_name="Completed Consultations", empty_msg="No completed consultation records yet." %}
+                {% include 'dashboards/partials/patient_appointment_table.html' %}
+            {% endwith %}
+        </div>
+
+        <!-- 4. Cancelled Appointments -->
+        <div class="tab-pane fade" id="cancelled-pane" role="tabpanel">
+            {% with appt_list=cancelled_appointments, section_name="Cancelled Appointments", empty_msg="No cancelled appointments." %}
+                {% include 'dashboards/partials/patient_appointment_table.html' %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+
+<!-- Reusable Cancellation Modals -->
+{% for appt in all_appointments %}
+    {% if appt.status not in ['cancelled', 'completed'] and appt.appointment_date >= today %}
+        <div class="modal fade" id="cancelModal{{ appt.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ appt.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="cancelModalLabel{{ appt.id }}">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Cancel Appointment
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="mb-3">Are you sure you want to cancel this scheduled consultation?</p>
+                        <div class="p-3 bg-light rounded-3 small mb-3 border">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Appointment No:</span>
+                                <strong class="font-monospace text-dark">{{ appt.appointment_number or appt.appointment_uid[:8] }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Physician:</span>
+                                <strong>{{ appt.doctor.user.full_name if appt.doctor and appt.doctor.user else "Physician" }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Facility:</span>
+                                <span>{{ appt.hospital.name if appt.hospital else "Hospital" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Date & Time:</span>
+                                <span>{{ appt.appointment_date }} at {{ appt.time_slot }}</span>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning small mb-0">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            Once cancelled, this time slot will become available for other patients. Your booking record will be retained in your cancelled history.
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Keep Appointment</button>
+                        <form method="POST" action="{{ url_for('patient.cancel_appointment', appointment_id=appt.id) }}">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-x-circle me-1"></i> Confirm Cancellation
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Dashboard - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Doctor Profile Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary-subtle text-primary" style="width: 64px; height: 64px; font-size: 2rem;">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <span class="badge badge-doctor px-3 py-1">Practicing Physician</span>
+                        {% if doctor.is_available %}
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Currently Available</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Away / Off Duty</span>
+                        {% endif %}
+                        {% if doctor.is_available_today() %}
+                            <span class="badge bg-info-subtle text-info"><i class="bi bi-calendar-check me-1"></i>On Duty Today</span>
+                        {% else %}
+                            <span class="badge bg-light text-muted border">Off Duty Today</span>
+                        {% endif %}
+                    </div>
+                    <h2 class="fw-bold mb-1 text-dark">Dr. {{ doctor.user.full_name if doctor.user else "Doctor" }}</h2>
+                    <p class="text-secondary small mb-0">
+                        <span class="text-primary fw-semibold">{{ doctor.specialization }}</span> &bull; 
+                        {{ doctor.qualification }} &bull; 
+                        <i class="bi bi-building ms-1 text-info"></i> {{ doctor.hospital.name if doctor.hospital else "Affiliated Hospital" }} ({{ doctor.room_number }}) &bull;
+                        <span class="text-success fw-semibold">${{ "%.2f"|format(doctor.consultation_fee) }} / visit</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <a href="{{ url_for('doctor.profile') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i> Edit Profile
+                </a>
+                <a href="{{ url_for('doctor.availability') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-clock-history me-1"></i> Schedule
+                </a>
+                <form method="POST" action="{{ url_for('doctor.toggle_availability') }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm {% if doctor.is_available %}btn-outline-danger{% else %}btn-success{% endif %}">
+                        <i class="bi bi-power me-1"></i>
+                        {% if doctor.is_available %}Go Off Duty{% else %}Set Available{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Pills -->
+    <div class="mb-4">
+        <ul class="nav nav-pills gap-2 bg-white p-2 rounded-3 border shadow-sm flex-wrap small">
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('doctor.dashboard') }}"><i class="bi bi-speedometer2 me-1"></i> Overview</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.profile') }}"><i class="bi bi-person-badge me-1"></i> My Profile</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.availability') }}"><i class="bi bi-clock me-1"></i> Availability & Schedule</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.appointments') }}"><i class="bi bi-calendar-check me-1"></i> Appointments ({{ appointments|length }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.patients') }}"><i class="bi bi-people-fill me-1"></i> Patient History ({{ total_patients }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('doctor.hospital_info') }}"><i class="bi bi-hospital me-1"></i> Associated Hospital</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Quick Metrics (6 Summary Cards) -->
+    <section id="overview" class="mb-4">
+        <div class="row g-3">
+            <!-- 1. Specialization -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-primary-subtle text-primary" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-heart-pulse"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark text-truncate" title="{{ doctor.specialization }}">{{ doctor.specialization }}</h6>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Specialization</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Clinical Experience -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-info-subtle text-info" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-award"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ doctor.experience_years }} <span class="fs-6 text-muted">Yrs</span></h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Experience</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Consultation Fee -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-success-subtle text-success" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">${{ "%.0f"|format(doctor.consultation_fee) }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Consult Fee</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Assigned Patients -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-purple-subtle text-purple" style="background: #f3e8ff; color: #7c3aed; width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ total_patients }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Total Patients</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Today's Consultations -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-primary-subtle text-primary" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-calendar-check-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ today_count }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Today's Consults</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Upcoming Consultations -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-warning-subtle text-warning" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ upcoming_count }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Upcoming</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Schedule & Working Hours Card -->
+    <section id="schedule" class="mb-4">
+        <div class="card card-care p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-success-subtle text-success" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                        <i class="bi bi-calendar2-week"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Clinical Schedule & Working Hours</h5>
+                        <p class="text-secondary small mb-0">
+                            <strong>Working Days:</strong> {{ doctor.available_days }} &bull;
+                            <strong>Hours:</strong> {{ doctor.available_time }} &bull;
+                            <strong>Cabin:</strong> {{ doctor.room_number }}
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('doctor.availability') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-sliders me-1"></i> Edit Schedule
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Today's Patient Queue Table -->
+    <section id="today-queue" class="mb-4">
+        <div class="card card-care p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-card-checklist text-primary me-2"></i>Today's Consultations Queue</h5>
+                    <p class="text-secondary small mb-0">Patients scheduled for clinical examination today</p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary">{{ appointments|length }} Bookings</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>UID</th>
+                            <th>Patient Name</th>
+                            <th>Contact</th>
+                            <th>Blood Group</th>
+                            <th>Time Slot</th>
+                            <th>Reported Symptoms</th>
+                            <th>Status</th>
+                            <th>Digital Verification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in today_appointments %}
+                        <tr>
+                            <td><code class="text-primary">{{ appt.appointment_uid[:8] }}</code><span class="d-none">{{ appt.appointment_uid }}</span></td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</div>
+                                <span class="text-muted small">DOB: {{ appt.patient.date_of_birth or 'N/A' }}</span>
+                            </td>
+                            <td>
+                                <span class="text-muted small"><i class="bi bi-telephone me-1 text-success"></i>{{ appt.patient.user.phone if appt.patient and appt.patient.user else "N/A" }}</span>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ appt.patient.blood_group if appt.patient else "N/A" }}</span></td>
+                            <td>
+                                <span class="badge bg-light text-primary border">{{ appt.time_slot }}</span>
+                            </td>
+                            <td class="small text-muted" style="max-width: 250px;">
+                                {{ appt.symptoms or 'No symptoms specified' }}
+                            </td>
+                            <td>
+                                {% if appt.status == 'confirmed' %}
+                                    <span class="badge bg-success-subtle text-success">Confirmed</span>
+                                {% elif appt.status == 'completed' %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning">{{ appt.status|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-teal-subtle text-dark border p-2" style="background: #e6fffa;">
+                                    <i class="bi bi-qr-code text-primary me-1"></i> QR Verified
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-calendar-x fs-2 text-secondary d-block mb-1"></i>
+                                <span class="fw-semibold">No scheduled patient appointments for today.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upcoming Consultations & Associated Hospital Row -->
+    <div class="row g-4">
+        <!-- Upcoming Appointments Card -->
+        <div class="col-lg-7">
+            <div class="card card-care p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-calendar-week text-success me-2"></i>Upcoming Consultations</h5>
+                    <a href="{{ url_for('doctor.appointments') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>UID</th>
+                                <th>Patient Name</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appt in upcoming_appointments[:5] %}
+                            <tr>
+                                <td><code class="text-primary">{{ appt.appointment_uid[:8] }}</code><span class="d-none">{{ appt.appointment_uid }}</span></td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</div>
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold">{{ appt.appointment_date }}</div>
+                                    <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">{{ appt.time_slot }}</span>
+                                </td>
+                                <td>
+                                    {% if appt.status == 'confirmed' %}
+                                        <span class="badge bg-success-subtle text-success">Confirmed</span>
+                                    {% else %}
+                                        <span class="badge bg-warning-subtle text-warning">{{ appt.status|capitalize }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <span class="fw-semibold">No upcoming appointments scheduled.</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Associated Hospital Facility Summary -->
+        <div class="col-lg-5">
+            <div class="card card-care p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-hospital text-info me-2"></i>Associated Facility</h5>
+                    <a href="{{ url_for('doctor.hospital_info') }}" class="btn btn-sm btn-outline-info">Facility Details</a>
+                </div>
+
+                {% if hospital %}
+                <div class="p-3 bg-light rounded-3 mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-primary-subtle text-primary">{{ hospital.hospital_type }}</span>
+                        <span class="badge bg-light text-dark border">{{ hospital.operational_status }}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">{{ hospital.name }}</h5>
+                    <p class="text-secondary small mb-0"><i class="bi bi-geo-alt text-danger me-1"></i>{{ hospital.address }}, {{ hospital.city }}</p>
+                </div>
+
+                <ul class="list-group list-group-flush small mb-3">
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Contact Phone:</span>
+                        <span class="fw-semibold text-dark">{{ hospital.contact_phone or "N/A" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Emergency Ward:</span>
+                        {% if hospital.emergency_available %}
+                            <span class="badge bg-success-subtle text-success">Active 24/7</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary">Unavailable</span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Bed Availability:</span>
+                        <span class="fw-semibold text-teal" style="color: #0f766e;">{{ hospital.available_beds }} / {{ hospital.total_beds }} Beds</span>
+                    </li>
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p class="mb-1">No hospital currently associated with your account.</p>
+                    <a href="{{ url_for('doctor.profile') }}" class="btn btn-sm btn-outline-primary mt-2">Select Hospital</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

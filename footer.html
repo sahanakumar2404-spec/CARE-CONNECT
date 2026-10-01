@@ -1,0 +1,67 @@
+<footer>
+    <div class="container">
+        <div class="row g-4 mb-4">
+            <!-- Brand Column -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="brand-badge">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                    </div>
+                    <span class="fs-4 fw-bold text-white">Care<span class="text-info">Connect</span></span>
+                </div>
+                <p class="small text-secondary mb-3">
+                    A centralized, secure, AI-enabled healthcare coordination web platform uniting hospital administrations, practicing physicians, and patients into a unified ecosystem.
+                </p>
+                <div class="d-flex gap-3 fs-5 text-secondary">
+                    <a href="#" class="text-secondary"><i class="bi bi-github"></i></a>
+                    <a href="#" class="text-secondary"><i class="bi bi-shield-check"></i></a>
+                    <a href="#" class="text-secondary"><i class="bi bi-envelope"></i></a>
+                </div>
+            </div>
+
+            <!-- Role Portals -->
+            <div class="col-lg-2 col-md-6 col-6">
+                <h6 class="text-white fw-bold mb-3">Role Portals</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><a href="{{ url_for('hospital.dashboard') }}">Hospital Management</a></li>
+                    <li class="mb-2"><a href="{{ url_for('doctor.dashboard') }}">Doctor Portal</a></li>
+                    <li class="mb-2"><a href="{{ url_for('patient.dashboard') }}">Patient Access</a></li>
+                    <li class="mb-2"><a href="{{ url_for('auth.login') }}">Account Sign-In</a></li>
+                </ul>
+            </div>
+
+            <!-- Technology & Platform -->
+            <div class="col-lg-3 col-md-6 col-6">
+                <h6 class="text-white fw-bold mb-3">Tech Stack</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><span class="badge bg-secondary me-1">Backend</span> Python 3 & Flask</li>
+                    <li class="mb-2"><span class="badge bg-secondary me-1">ORM</span> SQLite & SQLAlchemy</li>
+                    <li class="mb-2"><span class="badge bg-secondary me-1">AI Module</span> Scikit-Learn / NLP</li>
+                    <li class="mb-2"><span class="badge bg-secondary me-1">Verification</span> QR Code & ReportLab</li>
+                </ul>
+            </div>
+
+            <!-- Project Attribution -->
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-bold mb-3">Academic Project</h6>
+                <p class="small text-secondary mb-2">
+                    Developed as a complete College-Level Healthcare Engineering & Artificial Intelligence Project.
+                </p>
+                <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 small text-secondary">
+                    <i class="bi bi-check-circle text-success me-1"></i> Phase 1 Setup Verified
+                </div>
+            </div>
+        </div>
+
+        <hr class="border-secondary border-opacity-25 my-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center small text-secondary">
+            <div>
+                &copy; {{ current_year }} Care Connect Platform. Built for educational healthcare coordination.
+            </div>
+            <div>
+                <span>Standardized Role Architecture &bull; Session Security &bull; SQLite ORM</span>
+            </div>
+        </div>
+    </div>
+</footer>

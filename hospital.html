@@ -1,0 +1,548 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Management Dashboard - Care Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Embedded Analytics Data for Chart.js -->
+    <script id="hospitalAnalyticsData" type="application/json">{{ analytics_json|safe }}</script>
+
+    <!-- Hospital Header Banner -->
+    <div class="card card-care p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="badge badge-hospital px-3 py-1">Hospital Management Hub</span>
+                    <span class="badge bg-primary-subtle text-primary">{{ hospital.hospital_type if hospital else "General Hospital" }}</span>
+                    {% if hospital and hospital.emergency_available %}
+                        <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i>Emergency Active</span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger"><i class="bi bi-exclamation-octagon me-1"></i>Emergency Paused</span>
+                    {% endif %}
+                    <span class="badge bg-light text-dark border">{{ hospital.operational_status if hospital else "Normal Operations" }}</span>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">{{ hospital.name if hospital else "Care Connect Facility" }}</h2>
+                <p class="text-secondary small mb-0">
+                    <i class="bi bi-geo-alt me-1 text-danger"></i> {{ hospital.address if hospital else "N/A" }}, {{ hospital.city if hospital else "" }} &bull; 
+                    <i class="bi bi-card-text me-1 text-primary"></i> License: {{ hospital.registration_number if hospital else "HOSP-001" }} &bull;
+                    <i class="bi bi-telephone me-1 text-success"></i> {{ hospital.contact_phone if hospital else "N/A" }}
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('hospital.profile') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i> Edit Profile
+                </a>
+                <a href="{{ url_for('hospital.doctors') }}" class="btn btn-care btn-sm">
+                    <i class="bi bi-people-fill me-1"></i> Manage Doctors
+                </a>
+            </div>
+        </div>
+
+        {% if hospital and hospital.daily_notice %}
+            <div class="alert alert-info d-flex align-items-center gap-2 mt-3 mb-0 py-2 px-3 small border-0 shadow-sm">
+                <i class="bi bi-megaphone-fill fs-6 text-info"></i>
+                <div><strong>Daily Hospital Notice:</strong> {{ hospital.daily_notice }}</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Dashboard Sub-Navigation Tabs -->
+    <div class="mb-4">
+        <ul class="nav nav-pills gap-2 bg-white p-2 rounded-3 border shadow-sm flex-wrap small">
+            <li class="nav-item">
+                <a class="nav-link active" href="#overview"><i class="bi bi-speedometer2 me-1"></i> Overview</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#doctors"><i class="bi bi-people-fill me-1"></i> Doctors ({{ total_doctors }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#availability"><i class="bi bi-clock-history me-1"></i> Availability ({{ available_doctors }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#departments"><i class="bi bi-grid-fill me-1"></i> Departments ({{ specialty_counts|length }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#daily-updates"><i class="bi bi-calendar-check me-1"></i> Daily Updates</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#analytics"><i class="bi bi-bar-chart-fill me-1"></i> Analytics</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('hospital.ai_load_prediction') }}"><i class="bi bi-graph-up-arrow me-1"></i> AI Load Prediction</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#appointments"><i class="bi bi-calendar-event me-1"></i> Consultations</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 1. Overview: 6 Summary Metric Cards -->
+    <section id="overview" class="mb-4">
+        <div class="row g-3">
+            <!-- 1. Total Doctors -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-info-subtle text-info" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ total_doctors }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Total Doctors</span>
+                        <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;">{{ total_doctors }} Specialists</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Available Doctors Today -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-success-subtle text-success" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ available_doctors }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Available Today</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Total Patients -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-purple-subtle text-purple" style="background: #f3e8ff; color: #7c3aed; width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-person-heart"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ total_patients }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Total Patients</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Today's Appointments -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-primary-subtle text-primary" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-calendar-check-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ today_appointments }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Today's Bookings</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Upcoming Appointments -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-warning-subtle text-warning" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-calendar-week-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ upcoming_appointments }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Upcoming Consults</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Available Appointment Slots -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-icon bg-teal-subtle text-teal" style="background: #ccfbf1; color: #0f766e; width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-clock-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ available_slots }}</h4>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Available Slots</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Patient Load Highlight Card -->
+    <div class="card card-care p-3 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #f0fdfa 0%, #f5f3ff 100%); border-left: 4px solid #0f766e !important;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background: #ccfbf1; color: #0f766e; width: 48px; height: 48px; font-size: 1.4rem;">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge" style="background-color: #0f766e; color: white;">AI Operational Forecast</span>
+                        <span class="fw-bold text-dark">AI Patient Load</span>
+                    </div>
+                    {% if ai_prediction and ai_prediction.has_sufficient_data %}
+                        <p class="mb-0 text-dark small">
+                            Predicted tomorrow: <strong>{{ ai_prediction.predicted_tomorrow }} appointments</strong> &bull; 
+                            <span class="text-muted">Trend: {{ ai_prediction.trend }} &bull; {{ ai_prediction.confidence_display }}</span>
+                        </p>
+                    {% else %}
+                        <p class="mb-0 text-muted small">
+                            Insufficient historical data for reliable prediction. Requires at least 3 active days of appointment activity.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('hospital.ai_load_prediction') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-cpu me-1"></i> View Prediction
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Department / Specialization Summary -->
+    <section id="departments" class="mb-4">
+        <div class="card card-care p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-grid-fill text-primary me-2"></i>Medical Departments & Specializations</h5>
+                    <p class="text-secondary small mb-0">Dynamic departmental breakdown derived from practicing physicians</p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary">{{ specialty_counts|length }} Active Departments</span>
+            </div>
+
+            {% if specialty_counts %}
+                <div class="row g-3">
+                    {% for specialty, count in specialty_counts %}
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="p-3 border rounded-3 bg-light h-100 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">{{ specialty }}</h6>
+                                    <span class="text-muted small">Specialized Clinic</span>
+                                </div>
+                                <span class="badge bg-primary rounded-pill fs-6 px-3 py-2">
+                                    {{ count }} {{ "Doctor" if count == 1 else "Doctors" }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-hospital fs-1 d-block mb-2 text-secondary"></i>
+                    <p class="mb-1 fw-semibold">No medical departments registered yet.</p>
+                    <p class="small text-muted">Specializations will appear here as doctors register or are affiliated with this hospital.</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- 3. Doctor Management & Roster -->
+    <section id="doctors" class="mb-4">
+        <div class="card card-care p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-people-fill text-info me-2"></i>Doctor Management & Staff Roster</h5>
+                    <p class="text-secondary small mb-0">Doctors affiliated with {{ hospital.name if hospital else "your facility" }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('hospital.doctors') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-fullscreen me-1"></i> View Full Doctor Directory
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Doctor Name</th>
+                            <th>Specialization</th>
+                            <th>Qualifications</th>
+                            <th>Experience</th>
+                            <th>Room</th>
+                            <th>Fee</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in doctors %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ doc.user.full_name if doc.user else "Dr. Unknown" }}</div>
+                                <span class="text-muted small"><i class="bi bi-envelope me-1"></i>{{ doc.user.email if doc.user else "" }}</span>
+                            </td>
+                            <td><span class="badge bg-primary-subtle text-primary">{{ doc.specialization }}</span></td>
+                            <td class="small">{{ doc.qualification }}</td>
+                            <td>{{ doc.experience_years }} yrs</td>
+                            <td><span class="badge bg-light text-dark border">{{ doc.room_number }}</span></td>
+                            <td class="fw-semibold">${{ "%.2f"|format(doc.consultation_fee) }}</td>
+                            <td>
+                                {% if doc.is_available %}
+                                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Available</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-dash-circle me-1"></i>Off-Duty</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <form method="POST" action="{{ url_for('hospital.toggle_doctor_availability', doctor_id=doc.id) }}">
+                                        <button type="submit" class="btn btn-sm {% if doc.is_available %}btn-outline-danger{% else %}btn-outline-success{% endif %}" title="Toggle Availability">
+                                            <i class="bi bi-power"></i>
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('hospital.edit_doctor', doctor_id=doc.id) }}" class="btn btn-sm btn-outline-primary" title="Edit Doctor Profile">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <p class="mb-1">No doctors currently registered in this hospital.</p>
+                                <span class="small">Doctors who select this hospital during registration will appear here automatically.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Doctor Availability Management & Schedules -->
+    <section id="availability" class="mb-4">
+        <div class="card card-care p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-clock-history text-success me-2"></i>Doctor Availability & Schedule Control</h5>
+                    <p class="text-secondary small mb-0">Manage clinical consulting hours and on-duty availability</p>
+                </div>
+                <span class="badge bg-success-subtle text-success">{{ available_doctors }} of {{ total_doctors }} Available</span>
+            </div>
+
+            {% if doctors %}
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Department</th>
+                                <th>Availability Status</th>
+                                <th>Working Days</th>
+                                <th>Consultation Hours</th>
+                                <th>Quick Schedule Update</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in doctors %}
+                            <tr>
+                                <td class="fw-semibold">{{ doc.user.full_name if doc.user else "Doctor" }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ doc.specialization }}</span></td>
+                                <td>
+                                    {% if doc.is_available %}
+                                        <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Unavailable</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ doc.available_days }}</td>
+                                <td class="small text-muted">{{ doc.available_time }}</td>
+                                <td>
+                                    <!-- Inline Schedule Form -->
+                                    <form method="POST" action="{{ url_for('hospital.update_doctor_schedule', doctor_id=doc.id) }}" class="d-flex gap-1">
+                                        <input type="text" name="available_days" class="form-control form-control-sm" placeholder="e.g. Mon - Fri" value="{{ doc.available_days }}" style="max-width: 140px;">
+                                        <input type="text" name="available_time" class="form-control form-control-sm" placeholder="e.g. 09:00 AM - 05:00 PM" value="{{ doc.available_time }}" style="max-width: 170px;">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Save</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    No doctors available to manage. Roster will appear when doctors register.
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- 5. Daily Updates & Operational Info -->
+    <section id="daily-updates" class="mb-4">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card card-care p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-warning me-2"></i>Daily Operational Information</h5>
+                    <p class="text-secondary small mb-3">Update live bed capacity, emergency status, and facility operational level.</p>
+
+                    <form method="POST" action="{{ url_for('hospital.daily_updates') }}">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="operational_status" class="form-label small fw-semibold">Today's Hospital Status</label>
+                                <select class="form-select form-select-sm" id="operational_status" name="operational_status">
+                                    <option value="Normal Operations" {% if hospital and hospital.operational_status == 'Normal Operations' %}selected{% endif %}>Normal Operations</option>
+                                    <option value="High Capacity" {% if hospital and hospital.operational_status == 'High Capacity' %}selected{% endif %}>High Capacity</option>
+                                    <option value="Emergency Advisory" {% if hospital and hospital.operational_status == 'Emergency Advisory' %}selected{% endif %}>Emergency Advisory</option>
+                                    <option value="Limited Services" {% if hospital and hospital.operational_status == 'Limited Services' %}selected{% endif %}>Limited Services</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold d-block">Emergency Ward Status</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="emergency_available" name="emergency_available" {% if hospital and hospital.emergency_available %}checked{% endif %}>
+                                    <label class="form-check-label small" for="emergency_available">Emergency 24/7 Available</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="total_beds" class="form-label small fw-semibold">Total Inpatient Beds</label>
+                                <input type="number" class="form-control form-control-sm" id="total_beds" name="total_beds" value="{{ hospital.total_beds if hospital else 100 }}" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="available_beds" class="form-label small fw-semibold">Available Beds Today</label>
+                                <input type="number" class="form-control form-control-sm" id="available_beds" name="available_beds" value="{{ hospital.available_beds if hospital else 30 }}" min="0">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="daily_notice" class="form-label small fw-semibold">Important Daily Notice / Bulletin</label>
+                            <textarea class="form-control form-control-sm" id="daily_notice" name="daily_notice" rows="2" placeholder="e.g., Vaccination drive active today in Wing B.">{{ hospital.daily_notice if hospital else "" }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-care">
+                            <i class="bi bi-save me-1"></i> Save Daily Operations
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card card-care p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart text-danger me-2"></i>Bed Occupancy Status</h5>
+                    
+                    <div class="p-3 bg-light rounded-3 mb-3 text-center">
+                        <span class="text-muted small d-block">Available Inpatient Beds</span>
+                        <h2 class="fw-bold mb-0 text-teal" style="color: #0f766e;">{{ hospital.available_beds if hospital else 0 }} <span class="fs-6 text-muted">/ {{ hospital.total_beds if hospital else 0 }} Total</span></h2>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small fw-semibold mb-1">
+                            <span>Occupancy Rate</span>
+                            <span>
+                                {% if hospital and hospital.total_beds > 0 %}
+                                    {{ (((hospital.total_beds - hospital.available_beds) / hospital.total_beds) * 100)|round|int }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            {% set pct = (((hospital.total_beds - hospital.available_beds) / hospital.total_beds) * 100)|round|int if hospital and hospital.total_beds > 0 else 0 %}
+                            <div class="progress-bar {% if pct > 85 %}bg-danger{% elif pct > 60 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ pct }}%;"></div>
+                        </div>
+                    </div>
+
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Facility Registration:</span>
+                            <code>{{ hospital.registration_number if hospital else "N/A" }}</code>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Facility Email:</span>
+                            <span class="text-dark">{{ hospital.contact_email if hospital else "N/A" }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Real Database Analytics -->
+    <section id="analytics" class="mb-4">
+        <div class="card card-care p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Hospital Operational Analytics</h5>
+                    <p class="text-secondary small mb-0">Real visualizations powered by live database records</p>
+                </div>
+                <span class="badge bg-light text-dark border">Live Chart.js</span>
+            </div>
+
+            {% if total_doctors > 0 %}
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <div class="p-3 border rounded-3 bg-white">
+                            <h6 class="fw-bold small text-muted text-uppercase mb-3">Doctor Distribution by Specialty</h6>
+                            <div style="height: 250px;">
+                                <canvas id="specialtyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="p-3 border rounded-3 bg-white">
+                            <h6 class="fw-bold small text-muted text-uppercase mb-3">Doctor Availability Ratio</h6>
+                            <div style="height: 250px;">
+                                <canvas id="availabilityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-graph-up fs-1 text-secondary mb-2 d-block"></i>
+                    <p class="fw-semibold mb-1">No doctor data available yet for analytics.</p>
+                    <span class="small text-muted">Analytics will appear here once doctors and departments are affiliated with this hospital.</span>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- 7. Recent Scheduled Consultations -->
+    <section id="appointments">
+        <div class="card card-care p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-event text-secondary me-2"></i>Recent Hospital Consultations</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary-subtle text-secondary">{{ appointments|length }} Records</span>
+                    <a href="{{ url_for('hospital.appointments') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Full Appointment Management
+                    </a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>UID</th>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Date & Time</th>
+                            <th>Symptoms / Notes</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in appointments %}
+                        <tr>
+                            <td><code class="text-primary">{{ appt.appointment_uid[:8] }}</code></td>
+                            <td class="fw-semibold">{{ appt.patient.user.full_name if appt.patient and appt.patient.user else "Patient" }}</td>
+                            <td>{{ appt.doctor.user.full_name if appt.doctor and appt.doctor.user else "Doctor" }}</td>
+                            <td>{{ appt.appointment_date }} &bull; {{ appt.time_slot }}</td>
+                            <td class="small text-muted text-truncate" style="max-width: 250px;">{{ appt.symptoms or "N/A" }}</td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success text-capitalize">{{ appt.status }}</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <p class="mb-1">No appointments yet.</p>
+                                <span class="small">Data will appear after appointments are created.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

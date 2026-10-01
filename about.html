@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}About - Care Connect Healthcare Coordination{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="mb-5 text-center">
+                <span class="hero-pill mb-2">
+                    <i class="bi bi-mortarboard-fill"></i> College Engineering Project
+                </span>
+                <h1 class="fw-bold mt-2">Care Connect Platform Architecture</h1>
+                <p class="lead text-secondary">
+                    Designed as a modular, secure, full-stack healthcare coordination system connecting Hospital Management, Doctors, and Patients.
+                </p>
+            </div>
+
+            <!-- Problem & Solution Grid -->
+            <div class="card card-care p-4 mb-4">
+                <h4 class="fw-bold text-dark mb-3"><i class="bi bi-bullseye text-danger me-2"></i>Core Problems Addressed</h4>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="bi bi-x-circle text-danger me-2"></i>Specialist Discovery Bottlenecks</h6>
+                            <p class="small text-secondary mb-0">Patients often do not know which specialist matches their symptoms, causing diagnostic delays.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="bi bi-x-circle text-danger me-2"></i>Fragmented Schedules & Queues</h6>
+                            <p class="small text-secondary mb-0">Manual doctor timetable maintenance leads to overbooking and long waiting hall times.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="bi bi-x-circle text-danger me-2"></i>Lack of Digital Verification</h6>
+                            <p class="small text-secondary mb-0">Paper slips easily get lost. QR code verification gives instantaneous contactless confirmation.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded h-100 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="bi bi-x-circle text-danger me-2"></i>Administrative Data Silos</h6>
+                            <p class="small text-secondary mb-0">Hospitals lack unified views of bed counts, doctor availability, and weekly appointment loads.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technology Architecture -->
+            <div class="card card-care p-4 mb-4">
+                <h4 class="fw-bold text-dark mb-3"><i class="bi bi-layers-fill text-primary me-2"></i>System Architecture</h4>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="border-start border-4 border-primary ps-3">
+                            <h6 class="fw-bold">Presentation Tier</h6>
+                            <ul class="list-unstyled small text-muted">
+                                <li>&bull; HTML5 & Modern Semantic Layout</li>
+                                <li>&bull; Bootstrap 5.3 & Bootstrap Icons</li>
+                                <li>&bull; Chart.js for real-time analytics</li>
+                                <li>&bull; Vanilla JS async client logic</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-4 border-info ps-3">
+                            <h6 class="fw-bold">Application Tier</h6>
+                            <ul class="list-unstyled small text-muted">
+                                <li>&bull; Python 3.14 & Flask Web Engine</li>
+                                <li>&bull; Modular Blueprints architecture</li>
+                                <li>&bull; Session authentication & RBAC</li>
+                                <li>&bull; Modular AI Triage engine</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-4 border-success ps-3">
+                            <h6 class="fw-bold">Persistence & Reports</h6>
+                            <ul class="list-unstyled small text-muted">
+                                <li>&bull; SQLite relational database</li>
+                                <li>&bull; SQLAlchemy declarative ORM</li>
+                                <li>&bull; Cryptographic UID QR Codes</li>
+                                <li>&bull; ReportLab PDF generation ready</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Credentials Card -->
+            <div class="card card-care p-4 bg-light border">
+                <h5 class="fw-bold mb-3"><i class="bi bi-key text-warning me-2"></i>Evaluation Demonstration Credentials</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered bg-white mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Role</th>
+                                <th>Email / Username</th>
+                                <th>Default Password</th>
+                                <th>Dashboard Route</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge badge-hospital">Hospital</span></td>
+                                <td><code>admin@careconnect.org</code></td>
+                                <td><code>admin123</code></td>
+                                <td><code>/hospital/dashboard</code></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-doctor">Doctor</span></td>
+                                <td><code>dr.smith@careconnect.org</code></td>
+                                <td><code>doctor123</code></td>
+                                <td><code>/doctor/dashboard</code></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-patient">Patient</span></td>
+                                <td><code>patient@careconnect.org</code></td>
+                                <td><code>patient123</code></td>
+                                <td><code>/patient/dashboard</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
